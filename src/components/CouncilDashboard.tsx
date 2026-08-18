@@ -530,10 +530,6 @@ export function CouncilDashboard() {
                 >
                   Manually pick
                 </button>
-
-                <span className="hidden truncate text-[11px] text-muted-2 sm:inline">
-                  {selectedIds.size || 0} model{selectedIds.size === 1 ? "" : "s"}
-                </span>
               </div>
             ) : (
               <button
