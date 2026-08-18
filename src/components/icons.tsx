@@ -22,6 +22,7 @@ export function Icon({
 }
 
 export const ICON_PATHS = {
+  chevronDown: "M5 7.5 10 12.5 15 7.5",
   home: "M3 9.5 10 4l7 5.5V16a1 1 0 0 1-1 1h-3.5v-5h-5v5H4a1 1 0 0 1-1-1V9.5Z",
   chat: "M3 4h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8l-4 3v-3H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z",
   compare: "M4 3v14M16 3v14M4 6h5v11H4V6ZM11 6h5v8h-5V6Z",

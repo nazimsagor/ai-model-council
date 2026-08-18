@@ -15,6 +15,7 @@ import { VerdictPanel } from "@/components/VerdictPanel";
 import { DisagreementList } from "@/components/DisagreementList";
 import { CostSpeedSummary } from "@/components/CostSpeedSummary";
 import { Icon, ICON_PATHS } from "@/components/icons";
+import { COMBOS, resolveCombo } from "@/lib/council/combos";
 import type { PromptMode, Workflow } from "@/lib/types";
 
 const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof ICON_PATHS }[] = [
@@ -83,6 +84,8 @@ export function CouncilDashboard() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [judgeModelId, setJudgeModelId] = useState<string | null>(null);
   const [recommendationSource, setRecommendationSource] = useState<"trending" | "heuristic" | null>(null);
+  const [combo, setCombo] = useState<string>("quality-leaders");
+  const [comboMenuOpen, setComboMenuOpen] = useState(false);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -130,6 +133,7 @@ export function CouncilDashboard() {
     setAutoReason(null);
     setJudgeModelId(null);
     setRecommendationSource(null);
+    setCombo("quality-leaders");
   }, [workflow]);
 
   const availableModels = useMemo(
@@ -178,6 +182,28 @@ export function CouncilDashboard() {
       clearTimeout(timer);
     };
   }, [workflow, mode, freeModelsOnly, selectedIds.size]);
+
+  // Compare opens with a named combo already applied (default: Quality
+  // leaders) — a curated, data-driven lineup instead of an empty picker.
+  // Re-resolves whenever the combo or council-size mode changes, but never
+  // once the user has manually picked models via "Manually pick".
+  useEffect(() => {
+    if (workflow !== "compare" || modelPicked.current) return;
+    if (availableModels.length === 0) return;
+    const timer = setTimeout(() => {
+      if (workflow !== "compare" || modelPicked.current) return;
+      const count = MODES.find((m) => m.id === mode)?.count ?? 4;
+      const ids = resolveCombo(combo, availableModels, count);
+      setSelectedIds(new Set(ids));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [workflow, combo, mode, availableModels]);
+
+  function applyCombo(comboId: string) {
+    modelPicked.current = false;
+    setCombo(comboId);
+    setComboMenuOpen(false);
+  }
 
   async function autoSelect(count: number) {
     if (!prompt.trim() || availableModels.length === 0) return;
@@ -430,23 +456,84 @@ export function CouncilDashboard() {
           )}
 
           <div className="flex items-center justify-between gap-2 rounded-lg border-t border-border px-1 pt-2" title="Enter to send · Shift + Enter for a new line">
-            <button
-              onClick={openPicker}
-              className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[12px] text-muted transition-colors hover:text-foreground"
-            >
-              <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
-              <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-2">
-                {isMultiModel ? "Running with" : "Answering with"}
-              </span>
-              <span className="truncate font-medium text-foreground">
-                {workflow === "chat"
-                  ? (selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet"))
-                  : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"}${
-                      workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
-                    }`}
-              </span>
-              <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
-            </button>
+            {workflow === "compare" ? (
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setComboMenuOpen((v) => !v)}
+                    className="flex min-w-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-left text-[12px] transition-colors hover:border-border-strong"
+                  >
+                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-2">Combo</span>
+                    <span className="truncate font-medium text-foreground">
+                      {COMBOS.find((c) => c.id === combo)?.label ?? "Custom selection"}
+                    </span>
+                    <Icon path={ICON_PATHS.chevronDown} className="h-3 w-3 shrink-0 text-muted-2" />
+                  </button>
+
+                  {comboMenuOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Close combo menu"
+                        className="fixed inset-0 z-40 cursor-default"
+                        onClick={() => setComboMenuOpen(false)}
+                      />
+                      <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-lg border border-border bg-surface-raised py-1.5 shadow-lg">
+                        <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-2">
+                          Recommended combos
+                        </div>
+                        {COMBOS.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => applyCombo(c.id)}
+                            className={`flex w-full flex-col px-3 py-1.5 text-left transition-colors ${
+                              combo === c.id
+                                ? "bg-accent-soft text-accent-text"
+                                : "text-foreground hover:bg-background"
+                            }`}
+                          >
+                            <span className="text-[12px] font-medium">{c.label}</span>
+                            <span className="text-[11px] text-muted-2">{c.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openPicker}
+                  className="shrink-0 rounded-md border border-border px-2.5 py-1.5 text-[12px] text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                >
+                  Manually pick
+                </button>
+
+                <span className="hidden truncate text-[11px] text-muted-2 sm:inline">
+                  {selectedIds.size || 0} model{selectedIds.size === 1 ? "" : "s"}
+                </span>
+              </div>
+            ) : (
+              <button
+                onClick={openPicker}
+                className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[12px] text-muted transition-colors hover:text-foreground"
+              >
+                <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
+                <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-2">
+                  {isMultiModel ? "Running with" : "Answering with"}
+                </span>
+                <span className="truncate font-medium text-foreground">
+                  {workflow === "chat"
+                    ? (selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet"))
+                    : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"}${
+                        workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
+                      }`}
+                </span>
+                <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
+              </button>
+            )}
 
             <button
               type="button"
