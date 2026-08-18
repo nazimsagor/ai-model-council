@@ -84,7 +84,10 @@ export function ModelPickerModal({
 
   const providers = useMemo(() => Array.from(new Set(models.map((m) => m.provider))).sort(), [models]);
 
-  const filtered = useMemo(() => {
+  const PAGE_SIZE = 60;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const matched = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = models.filter((m) => {
       if (provider !== "all" && m.provider !== provider) return false;
@@ -100,8 +103,16 @@ export function ModelPickerModal({
       if (filter === "cheap") return a.pricing.completion - b.pricing.completion;
       return overallScore(b) - overallScore(a);
     });
-    return list.slice(0, 60);
+    return list;
   }, [models, query, filter, provider]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisibleCount(PAGE_SIZE), 0);
+    return () => clearTimeout(timer);
+  }, [query, filter, provider]);
+
+  const filtered = matched.slice(0, visibleCount);
+  const hiddenCount = matched.length - filtered.length;
 
   const selectedModels = useMemo(() => models.filter((m) => selected.has(m.id)), [models, selected]);
   const singleSelectedId = singleSelect ? (selectedModels[0]?.id ?? null) : null;
@@ -241,11 +252,20 @@ export function ModelPickerModal({
               <p className="col-span-full py-8 text-center text-[13px] text-muted">No models match these filters.</p>
             )}
           </div>
+          {hiddenCount > 0 && (
+            <button
+              onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+              className="mt-3 w-full rounded-lg border border-dashed border-border-strong py-2 text-center text-[12px] text-muted hover:border-accent hover:text-accent-text"
+            >
+              Show {Math.min(hiddenCount, PAGE_SIZE)} more ({matched.length - filtered.length} of {matched.length} not shown)
+            </button>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           <span className="text-[11px] text-muted-2">
             {singleSelect ? "This model will answer your next message." : `${selected.size} model${selected.size === 1 ? "" : "s"} selected.`}
+            {" "}Showing {filtered.length} of {matched.length}.
           </span>
           <div className="flex items-center gap-3">
             {singleSelect && onSetDefault && singleSelectedId && (

@@ -87,6 +87,7 @@ const PROVIDER_DOMAINS: Record<string, string> = {
   minimax: "minimax.io",
   stepfun: "stepfun.com",
   rekaai: "reka.ai",
+  xiaomi: "xiaomi.com",
 };
 
 /** Official domain for a provider's logo, or null if there isn't a real

@@ -20,6 +20,7 @@ interface RunRequestBody {
   autoSelect?: boolean;
   freeModelsOnly?: boolean;
   judgeCount?: number;
+  judgeModelId?: string;
   blindJudging?: boolean;
   temperature?: number;
   maxTokens?: number;
@@ -74,8 +75,19 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "No valid models selected" }), { status: 400 });
   }
 
-  const judgeCount = evaluate ? (body.judgeCount ?? (mode === "deep" || mode === "maximum" ? 3 : 1)) : 0;
-  const judgeModelIds = evaluate ? selectJudges(catalog, selectedModelIds, judgeCount, await getTrendingModelIds()) : [];
+  // A user-chosen judge (the "crown" pick in the UI) takes priority over
+  // auto-selection, as long as it's a real catalog model not already
+  // debating (a model should never judge its own answer).
+  const explicitJudgeId =
+    body.judgeModelId && catalog.some((m) => m.id === body.judgeModelId) && !selectedModelIds.includes(body.judgeModelId)
+      ? body.judgeModelId
+      : undefined;
+  const judgeCount = evaluate ? (explicitJudgeId ? 1 : (body.judgeCount ?? (mode === "deep" || mode === "maximum" ? 3 : 1))) : 0;
+  const judgeModelIds = evaluate
+    ? explicitJudgeId
+      ? [explicitJudgeId]
+      : selectJudges(catalog, selectedModelIds, judgeCount, await getTrendingModelIds())
+    : [];
   const temperature = body.temperature ?? 0.7;
   const maxTokens = body.maxTokens ?? 1024;
   const systemPrompt = buildSystemPrompt(promptMode, body.customSystemPrompt);

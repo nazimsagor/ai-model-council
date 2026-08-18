@@ -26,6 +26,7 @@ export interface RunCouncilRequest {
   autoSelect?: boolean;
   freeModelsOnly?: boolean;
   judgeCount?: number;
+  judgeModelId?: string;
   blindJudging?: boolean;
   temperature?: number;
   maxTokens?: number;

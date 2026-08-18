@@ -88,11 +88,12 @@ export function CouncilDashboard() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoReason, setAutoReason] = useState<string | null>(null);
   const [autoBusy, setAutoBusy] = useState(false);
-  const [recommendedJudgeId, setRecommendedJudgeId] = useState<string | null>(null);
+  const [judgeModelId, setJudgeModelId] = useState<string | null>(null);
   const [recommendationSource, setRecommendationSource] = useState<"trending" | "heuristic" | null>(null);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [judgePickerOpen, setJudgePickerOpen] = useState(false);
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
   const [judgeCount, setJudgeCount] = useState(1);
@@ -116,7 +117,7 @@ export function CouncilDashboard() {
       setPrompt("");
       setSelectedIds(new Set());
       setAutoReason(null);
-      setRecommendedJudgeId(null);
+      setJudgeModelId(null);
       setRecommendationSource(null);
       modelPicked.current = false;
     }
@@ -134,7 +135,7 @@ export function CouncilDashboard() {
     modelPicked.current = false;
     setSelectedIds(new Set());
     setAutoReason(null);
-    setRecommendedJudgeId(null);
+    setJudgeModelId(null);
     setRecommendationSource(null);
   }, [workflow]);
 
@@ -174,7 +175,7 @@ export function CouncilDashboard() {
           if (!json.modelIds || json.modelIds.length === 0) return;
           modelPicked.current = true;
           setSelectedIds(new Set(json.modelIds));
-          setRecommendedJudgeId(json.judgeModelId ?? null);
+          setJudgeModelId(json.judgeModelId ?? null);
           setRecommendationSource(json.source ?? null);
         })
         .catch(() => {});
@@ -254,6 +255,8 @@ export function CouncilDashboard() {
       else next.add(id);
       return next;
     });
+    // A model can't debate and judge itself — clear the judge if it was just added as a panelist.
+    if (workflow === "council" && id === judgeModelId) setJudgeModelId(null);
   }
 
   function handleModeClick(m: (typeof MODES)[number]) {
@@ -285,6 +288,7 @@ export function CouncilDashboard() {
         autoSelect: isAuto,
         freeModelsOnly,
         judgeCount: workflow === "council" ? judgeCount : 0,
+        judgeModelId: workflow === "council" ? (judgeModelId ?? undefined) : undefined,
         blindJudging,
         temperature,
         maxTokens,
@@ -374,6 +378,45 @@ export function CouncilDashboard() {
             rows={3}
             className="w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-[14px] outline-none"
           />
+
+          {workflow === "council" && selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-1 pt-2 pb-1">
+              {Array.from(selectedIds).map((id) => {
+                const m = models.find((x) => x.id === id);
+                if (!m) return null;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => toggleModel(id)}
+                    title={`Remove ${m.name} from the panel`}
+                    className="flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[12px] text-foreground transition-colors hover:border-danger hover:text-danger"
+                  >
+                    <ProviderIcon provider={m.provider} className="h-4 w-4" />
+                    <span className="max-w-[110px] truncate">{m.name}</span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setJudgePickerOpen(true)}
+                title="Choose the judge"
+                className="flex items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-2.5 py-1 text-[12px] font-medium text-accent-text"
+              >
+                {judgeModelId ? (
+                  <>
+                    <ProviderIcon provider={models.find((m) => m.id === judgeModelId)?.provider ?? "?"} className="h-4 w-4" />
+                    <span className="max-w-[90px] truncate">{models.find((m) => m.id === judgeModelId)?.name ?? "Judge"}</span>
+                  </>
+                ) : (
+                  <span>Pick a judge</span>
+                )}
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-on-accent">
+                  Judge
+                </span>
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-2 rounded-lg border-t border-border px-1 pt-2" title="Enter to send · Shift + Enter for a new line">
             <button
@@ -513,15 +556,15 @@ export function CouncilDashboard() {
                     </div>
                   )}
 
-                  {workflow === "council" && recommendedJudgeId && (
+                  {workflow === "council" && judgeModelId && (
                     <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
                       <ProviderIcon
-                        provider={models.find((m) => m.id === recommendedJudgeId)?.provider ?? "?"}
+                        provider={models.find((m) => m.id === judgeModelId)?.provider ?? "?"}
                         className="h-6 w-6"
                       />
                       <div className="min-w-0 text-[11px]">
                         <span className="font-medium text-foreground">
-                          Judge: {models.find((m) => m.id === recommendedJudgeId)?.name ?? recommendedJudgeId}
+                          Judge: {models.find((m) => m.id === judgeModelId)?.name ?? judgeModelId}
                         </span>
                         <span className="ml-1.5 text-muted-2">
                           {recommendationSource === "trending"
@@ -823,6 +866,19 @@ export function CouncilDashboard() {
         defaultModelId={workflow === "chat" ? defaultModelId : null}
         onSetDefault={workflow === "chat" ? setDefaultModelId : undefined}
       />
+
+      {workflow === "council" && (
+        <ModelPickerModal
+          open={judgePickerOpen}
+          onClose={() => setJudgePickerOpen(false)}
+          title="Choose the judge"
+          subtitle="Scores every panelist's answer and writes the verdict"
+          models={availableModels.filter((m) => !selectedIds.has(m.id))}
+          selected={judgeModelId ? new Set([judgeModelId]) : new Set<string>()}
+          onToggle={(id) => setJudgeModelId(id)}
+          singleSelect
+        />
+      )}
     </div>
   );
 }
