@@ -135,6 +135,95 @@ export function autoSelectModels(
   return { category, reason, modelIds: selected };
 }
 
+export interface CouncilRecommendation {
+  modelIds: string[];
+  judgeModelId: string | null;
+  source: "trending" | "heuristic";
+}
+
+/** Picks up to `n` models from `orderedIds`, at most one per provider, so a
+ *  council of "trending" or "best" models isn't secretly 3 variants of the
+ *  same lab's model. */
+function pickOnePerProvider(
+  orderedIds: string[],
+  catalogMap: Map<string, OpenRouterModel>,
+  n: number,
+  exclude: Set<string>
+): string[] {
+  const picked: string[] = [];
+  const usedProviders = new Set<string>();
+  for (const id of orderedIds) {
+    if (picked.length >= n) break;
+    if (exclude.has(id) || picked.includes(id)) continue;
+    const model = catalogMap.get(id);
+    if (!model) continue;
+    if (usedProviders.has(model.provider)) continue;
+    picked.push(id);
+    usedProviders.add(model.provider);
+  }
+  return picked;
+}
+
+/** Picks a judge from `orderedIds`, preferring one whose provider isn't
+ *  already represented among the debaters (so the judge is a genuinely
+ *  independent perspective, not just a different model from a lab that's
+ *  already debating) — falling back to any remaining model if the catalog
+ *  is too small for that. */
+function pickJudge(
+  orderedIds: string[],
+  catalogMap: Map<string, OpenRouterModel>,
+  debaterIds: string[]
+): string | null {
+  const debaterProviders = new Set(debaterIds.map((id) => catalogMap.get(id)?.provider).filter(Boolean));
+  const outsideDebaterProviders = orderedIds.find((id) => {
+    if (debaterIds.includes(id)) return false;
+    const model = catalogMap.get(id);
+    return model && !debaterProviders.has(model.provider);
+  });
+  if (outsideDebaterProviders) return outsideDebaterProviders;
+  return orderedIds.find((id) => !debaterIds.includes(id) && catalogMap.has(id)) ?? null;
+}
+
+/** Recommends a default Council lineup: `count` debaters plus one separate
+ *  judge, preferring models that are actually trending on OpenRouter right
+ *  now (real usage data) over any hardcoded notion of "flagship" model
+ *  names, which inevitably goes stale as new models ship. Falls back to a
+ *  capability-only heuristic (reasoning + tools + context length — no model
+ *  names) if trending data isn't available. */
+export function buildCouncilRecommendation(
+  catalog: OpenRouterModel[],
+  trendingIds: string[],
+  count: number
+): CouncilRecommendation {
+  const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+
+  if (trendingIds.length > 0) {
+    const debaters = pickOnePerProvider(trendingIds, catalogMap, count, new Set());
+    if (debaters.length === count) {
+      const judgeModelId = pickJudge(trendingIds, catalogMap, debaters);
+      return { modelIds: debaters, judgeModelId, source: "trending" };
+    }
+  }
+
+  // Fallback: no hardcoded model names, just real capability signals from
+  // the live catalog — reasoning + tool support + longer context, so this
+  // never goes stale the way a hardcoded name list does.
+  const scored = catalog
+    .map((model) => ({
+      model,
+      score:
+        (model.capabilities.reasoning ? 3 : 0) +
+        (model.capabilities.tools ? 1 : 0) +
+        Math.min(model.contextLength / 500_000, 2),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map((s) => s.model.id);
+
+  const debaters = pickOnePerProvider(scored, catalogMap, count, new Set());
+  const judgeModelId = pickJudge(scored, catalogMap, debaters);
+  return { modelIds: debaters, judgeModelId, source: "heuristic" };
+}
+
 export const COUNCIL_MODE_COUNTS: Record<string, number> = {
   fast: 4,
   balanced: 8,

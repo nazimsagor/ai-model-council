@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { listModels } from "@/lib/openrouter";
+import { getTrendingModelIds, listModels } from "@/lib/openrouter";
 import { selectJudges } from "@/lib/council/evaluation";
 import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect";
 import { buildSystemPrompt } from "@/lib/council/prompts";
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   }
 
   const judgeCount = evaluate ? (body.judgeCount ?? (mode === "deep" || mode === "maximum" ? 3 : 1)) : 0;
-  const judgeModelIds = evaluate ? selectJudges(catalog, selectedModelIds, judgeCount) : [];
+  const judgeModelIds = evaluate ? selectJudges(catalog, selectedModelIds, judgeCount, await getTrendingModelIds()) : [];
   const temperature = body.temperature ?? 0.7;
   const maxTokens = body.maxTokens ?? 1024;
   const systemPrompt = buildSystemPrompt(promptMode, body.customSystemPrompt);

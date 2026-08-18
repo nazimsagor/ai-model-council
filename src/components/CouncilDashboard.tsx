@@ -88,6 +88,8 @@ export function CouncilDashboard() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoReason, setAutoReason] = useState<string | null>(null);
   const [autoBusy, setAutoBusy] = useState(false);
+  const [recommendedJudgeId, setRecommendedJudgeId] = useState<string | null>(null);
+  const [recommendationSource, setRecommendationSource] = useState<"trending" | "heuristic" | null>(null);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -114,11 +116,27 @@ export function CouncilDashboard() {
       setPrompt("");
       setSelectedIds(new Set());
       setAutoReason(null);
+      setRecommendedJudgeId(null);
+      setRecommendationSource(null);
       modelPicked.current = false;
     }
     window.addEventListener("council:new", reset);
     return () => window.removeEventListener("council:new", reset);
   }, [clear]);
+
+  // Each workflow tab has its own selection semantics (single model for
+  // Chat, a lineup for Compare/Council) — start fresh when switching so a
+  // leftover Chat pick doesn't block Council's own default lineup below.
+  const prevWorkflowRef = useRef(workflow);
+  useEffect(() => {
+    if (prevWorkflowRef.current === workflow) return;
+    prevWorkflowRef.current = workflow;
+    modelPicked.current = false;
+    setSelectedIds(new Set());
+    setAutoReason(null);
+    setRecommendedJudgeId(null);
+    setRecommendationSource(null);
+  }, [workflow]);
 
   const availableModels = useMemo(
     () => (freeModelsOnly ? models.filter((m) => m.pricing.prompt === 0 && m.pricing.completion === 0) : models),
@@ -139,6 +157,33 @@ export function CouncilDashboard() {
     }, 0);
     return () => clearTimeout(timer);
   }, [workflow, defaultModelId, availableModels, selectedIds.size]);
+
+  // Council opens with a real, live-data-backed lineup already chosen — 5
+  // models actually trending on OpenRouter this week (one per provider) plus
+  // a separate judge — instead of an empty picker waiting for a typed prompt.
+  useEffect(() => {
+    if (workflow !== "council") return;
+    if (modelPicked.current || selectedIds.size > 0) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (modelPicked.current || selectedIds.size > 0) return;
+      fetch(`/api/council/recommended?mode=${mode}&freeModelsOnly=${freeModelsOnly ? "1" : "0"}`)
+        .then((r) => r.json())
+        .then((json: { modelIds?: string[]; judgeModelId?: string | null; source?: "trending" | "heuristic" }) => {
+          if (cancelled || modelPicked.current || selectedIds.size > 0) return;
+          if (!json.modelIds || json.modelIds.length === 0) return;
+          modelPicked.current = true;
+          setSelectedIds(new Set(json.modelIds));
+          setRecommendedJudgeId(json.judgeModelId ?? null);
+          setRecommendationSource(json.source ?? null);
+        })
+        .catch(() => {});
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [workflow, mode, freeModelsOnly, selectedIds.size]);
 
   async function autoSelect(count: number) {
     if (!prompt.trim() || availableModels.length === 0) return;
@@ -464,6 +509,25 @@ export function CouncilDashboard() {
                             <Icon path={ICON_PATHS.check} className="h-3 w-3" /> Ready
                           </span>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {workflow === "council" && recommendedJudgeId && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+                      <ProviderIcon
+                        provider={models.find((m) => m.id === recommendedJudgeId)?.provider ?? "?"}
+                        className="h-6 w-6"
+                      />
+                      <div className="min-w-0 text-[11px]">
+                        <span className="font-medium text-foreground">
+                          Judge: {models.find((m) => m.id === recommendedJudgeId)?.name ?? recommendedJudgeId}
+                        </span>
+                        <span className="ml-1.5 text-muted-2">
+                          {recommendationSource === "trending"
+                            ? "· recommended from live OpenRouter usage"
+                            : "· recommended by capability"}
+                        </span>
                       </div>
                     </div>
                   )}

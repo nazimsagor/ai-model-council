@@ -7,30 +7,30 @@ import {
   type OpenRouterModel,
 } from "../types";
 
-const JUDGE_PREFERENCE = [
-  "gpt-4o", "gpt-4.1", "o1", "o3",
-  "claude-3.7-sonnet", "claude-sonnet-4", "claude-3.5-sonnet", "claude-opus",
-  "gemini-2.0-flash-thinking", "gemini-2.5-pro", "gemini-2.0-pro", "gemini-1.5-pro",
-  "deepseek-r1", "llama-3.3-70b", "qwen2.5-72b",
-];
-
-/** Picks judge models, preferring strong flagship models that are NOT part of the
+/** Picks judge models, preferring strong models that are NOT part of the
  *  council being evaluated (so a model never judges itself), and preferring
- *  provider diversity when multiple judges are requested. */
+ *  provider diversity when multiple judges are requested.
+ *
+ *  Scoring prefers real current OpenRouter usage (`trendingIds`, ordered
+ *  most- to least-used this week) over any hardcoded list of model names —
+ *  a hardcoded "flagship" list inevitably goes stale as new models ship,
+ *  which is exactly what happened here before. Reasoning/tool support from
+ *  the live catalog is the tiebreak/fallback so this never goes stale again. */
 export function selectJudges(
   catalog: OpenRouterModel[],
   councilModelIds: string[],
-  count: number
+  count: number,
+  trendingIds: string[] = []
 ): string[] {
   const excluded = new Set(councilModelIds);
   const candidates = catalog.filter((m) => !excluded.has(m.id));
+  const trendRank = new Map(trendingIds.map((id, i) => [id, trendingIds.length - i]));
 
   const scored = candidates.map((model) => {
-    const idLower = model.id.toLowerCase();
-    let score = 0;
-    JUDGE_PREFERENCE.forEach((hint, idx) => {
-      if (idLower.includes(hint)) score += JUDGE_PREFERENCE.length - idx;
-    });
+    let score = trendRank.get(model.id) ?? 0;
+    score += model.capabilities.reasoning ? 3 : 0;
+    score += model.capabilities.tools ? 1 : 0;
+    score += Math.min(model.contextLength / 500_000, 2);
     return { model, score };
   });
   scored.sort((a, b) => b.score - a.score);

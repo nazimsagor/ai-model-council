@@ -26,6 +26,7 @@ const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 interface RawOpenRouterModel {
   id: string;
+  canonical_slug?: string;
   name?: string;
   description?: string;
   context_length?: number;
@@ -33,6 +34,11 @@ interface RawOpenRouterModel {
   architecture?: { modality?: string; input_modalities?: string[] };
   supported_parameters?: string[];
 }
+
+// Maps OpenRouter's dated "canonical_slug" (used by the rankings API) back to
+// the plain catalog id used everywhere else in this app. Populated whenever
+// listModels() runs.
+let canonicalSlugToId = new Map<string, string>();
 
 function deriveProvider(id: string): string {
   const slash = id.indexOf("/");
@@ -77,7 +83,63 @@ export async function listModels(forceRefresh = false): Promise<OpenRouterModel[
   const json = (await res.json()) as { data: RawOpenRouterModel[] };
   const models = json.data.map(parseModel).sort((a, b) => a.id.localeCompare(b.id));
   modelCache = { models, fetchedAt: Date.now() };
+  // Several ids can share one canonical_slug (e.g. a model and its ":batch"
+  // variant) — prefer the plain interactive id, since ":batch" models don't
+  // return synchronous chat completions the way this app calls them.
+  const slugMap = new Map<string, string>();
+  for (const m of json.data) {
+    if (!m.canonical_slug) continue;
+    const existing = slugMap.get(m.canonical_slug);
+    if (!existing || (existing.includes(":") && !m.id.includes(":"))) {
+      slugMap.set(m.canonical_slug, m.id);
+    }
+  }
+  canonicalSlugToId = slugMap;
   return models;
+}
+
+// ---- Live trending (real usage on OpenRouter this week) ----
+// Uses OpenRouter's public rankings data (the same data openrouter.ai/rankings
+// renders) so model recommendations reflect what's actually being used right
+// now instead of a hardcoded list of model names that inevitably goes stale
+// as new models ship. Falls back to an empty list (callers must handle that)
+// if this ever breaks — it's not a documented/stable API.
+interface TrendingRow {
+  model_permaslug: string;
+  total_prompt_tokens?: number;
+  total_completion_tokens?: number;
+}
+
+let trendingCache: { ids: string[]; fetchedAt: number } | null = null;
+const TRENDING_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+export async function getTrendingModelIds(): Promise<string[]> {
+  if (trendingCache && Date.now() - trendingCache.fetchedAt < TRENDING_TTL_MS) {
+    return trendingCache.ids;
+  }
+  try {
+    await listModels(); // ensures canonicalSlugToId is populated
+    const res = await fetch("https://openrouter.ai/api/frontend/v1/rankings/models?view=week", {
+      cache: "no-store",
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    if (!res.ok) throw new Error(`rankings fetch failed: ${res.status}`);
+    const json = (await res.json()) as { data: TrendingRow[] };
+
+    const totals = new Map<string, number>();
+    for (const row of json.data) {
+      const id = canonicalSlugToId.get(row.model_permaslug);
+      if (!id) continue;
+      const tokens = (row.total_prompt_tokens ?? 0) + (row.total_completion_tokens ?? 0);
+      totals.set(id, (totals.get(id) ?? 0) + tokens);
+    }
+
+    const ids = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    trendingCache = { ids, fetchedAt: Date.now() };
+    return ids;
+  } catch {
+    return [];
+  }
 }
 
 export async function getModelById(id: string): Promise<OpenRouterModel | undefined> {
