@@ -121,6 +121,73 @@ export interface CouncilRun {
   summary?: CouncilRunSummary;
 }
 
+// ---- Benchmarks ----
+
+export interface BenchmarkQuestion {
+  id: string;
+  prompt: string;
+  position: number;
+}
+
+export interface BenchmarkSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  questionCount: number;
+  lastRunAt?: string;
+  lastRunModelCount?: number;
+}
+
+export interface BenchmarkModelResult {
+  modelId: string;
+  provider: string;
+  status: ModelRunStatus;
+  content: string;
+  error?: string;
+  promptTokens: number;
+  completionTokens: number;
+  cost: number;
+  latencyMs: number;
+  scores?: EvaluationScores;
+  total?: number;
+}
+
+export interface BenchmarkQuestionResult {
+  questionId: string;
+  prompt: string;
+  results: BenchmarkModelResult[];
+}
+
+export interface BenchmarkModelAggregate {
+  modelId: string;
+  provider: string;
+  questionsAnswered: number;
+  questionsFailed: number;
+  avgAccuracy: number;
+  avgReasoning: number;
+  avgLatencyMs: number;
+  totalCost: number;
+  overallScore: number; // 0-100, average of per-question judge totals
+}
+
+export interface BenchmarkRun {
+  id: string;
+  modelIds: string[];
+  status: "running" | "complete" | "failed";
+  createdAt: string;
+  completedAt?: string;
+  questionResults: BenchmarkQuestionResult[];
+  aggregates: BenchmarkModelAggregate[];
+}
+
+export interface Benchmark {
+  id: string;
+  name: string;
+  createdAt: string;
+  questions: BenchmarkQuestion[];
+  latestRun?: BenchmarkRun;
+}
+
 export type SSEEvent =
   | { type: "status"; modelId: string; status: ModelRunStatus }
   | { type: "delta"; modelId: string; text: string }

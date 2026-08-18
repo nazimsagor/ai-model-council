@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { listRuns } from "@/lib/repository";
-import { getVisitorId } from "@/lib/session";
+import { requireUserId } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const visitorId = await getVisitorId();
-  const runs = await listRuns(visitorId, 100);
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
+  const runs = await listRuns(userId, 100);
   return NextResponse.json({ runs });
 }

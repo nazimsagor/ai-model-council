@@ -32,7 +32,13 @@ function NavLink({
   );
 }
 
-export function Sidebar() {
+export function Sidebar({
+  userEmail,
+  onSignOut,
+}: {
+  userEmail: string | null;
+  onSignOut: () => void | Promise<void>;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const workflow = searchParams.get("workflow");
@@ -72,6 +78,7 @@ export function Sidebar() {
         <NavLink href="/?workflow=council" active={onHome && workflow === "council"} icon="council" label="Council" />
         <NavLink href="/?workflow=auto" active={onHome && workflow === "auto"} icon="auto" label="Auto-route" />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
+        <NavLink href="/benchmarks" active={pathname.startsWith("/benchmarks")} icon="trophy" label="Benchmarks" />
       </nav>
 
       <label className="flex items-center justify-between rounded-lg border border-border bg-background px-2.5 py-2 text-[12px]">
@@ -135,6 +142,26 @@ export function Sidebar() {
         </span>
         <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
       </button>
+
+      {userEmail && (
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-3 text-[12px]">
+          <span className="flex min-w-0 items-center gap-1.5 text-muted">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold uppercase text-accent-text">
+              {userEmail.slice(0, 1)}
+            </span>
+            <span className="truncate">{userEmail}</span>
+          </span>
+          <form action={onSignOut}>
+            <button
+              type="submit"
+              title="Sign out"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-background hover:text-foreground"
+            >
+              <Icon path={ICON_PATHS.logout} className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        </div>
+      )}
     </aside>
   );
 }

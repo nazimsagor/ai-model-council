@@ -5,6 +5,7 @@ import { useModels } from "@/lib/client/useModels";
 import type { OpenRouterModel } from "@/lib/types";
 
 type SortKey = "overall" | "cheapest" | "context" | "reasoning";
+type CostFilter = "all" | "free" | "paid";
 
 const FLAGSHIP_HINTS = [
   "gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4",
@@ -42,6 +43,7 @@ export function ModelExplorer() {
   const [requireVision, setRequireVision] = useState(false);
   const [requireTools, setRequireTools] = useState(false);
   const [requireReasoning, setRequireReasoning] = useState(false);
+  const [cost, setCost] = useState<CostFilter>("all");
   const [sort, setSort] = useState<SortKey>("overall");
 
   const filtered = useMemo(() => {
@@ -51,6 +53,9 @@ export function ModelExplorer() {
       if (requireVision && !m.capabilities.vision) return false;
       if (requireTools && !m.capabilities.tools) return false;
       if (requireReasoning && !m.capabilities.reasoning) return false;
+      const isFree = m.pricing.prompt === 0 && m.pricing.completion === 0;
+      if (cost === "free" && !isFree) return false;
+      if (cost === "paid" && isFree) return false;
       if (q && !m.id.toLowerCase().includes(q) && !m.name.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -68,7 +73,7 @@ export function ModelExplorer() {
       }
     });
     return list;
-  }, [models, query, provider, requireVision, requireTools, requireReasoning, sort]);
+  }, [models, query, provider, requireVision, requireTools, requireReasoning, cost, sort]);
 
   if (loading) {
     return <p className="px-6 py-10 text-center text-[13px] text-muted">Loading OpenRouter catalog…</p>;
@@ -109,11 +114,24 @@ export function ModelExplorer() {
           onChange={(e) => setSort(e.target.value as SortKey)}
           className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px]"
         >
-          <option value="overall">Sort: Best overall</option>
-          <option value="cheapest">Sort: Cheapest</option>
+          <option value="overall">Sort: Best</option>
+          <option value="cheapest">Sort: Price (cheapest first)</option>
           <option value="context">Sort: Longest context</option>
           <option value="reasoning">Sort: Best reasoning</option>
         </select>
+        <div className="flex overflow-hidden rounded-md border border-border text-[12px]">
+          {(["all", "free", "paid"] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setCost(c)}
+              className={`px-2.5 py-1.5 capitalize transition-colors ${
+                cost === c ? "bg-accent-soft text-accent-text" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
         <FilterToggle label="Vision" active={requireVision} onClick={() => setRequireVision((v) => !v)} />
         <FilterToggle label="Tools" active={requireTools} onClick={() => setRequireTools((v) => !v)} />
         <FilterToggle label="Reasoning" active={requireReasoning} onClick={() => setRequireReasoning((v) => !v)} />
