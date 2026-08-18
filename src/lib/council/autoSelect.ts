@@ -148,11 +148,28 @@ export interface CouncilRecommendation {
 // volume. Each provider's actual model is still picked dynamically from
 // the live catalog below, so this never goes stale.
 //
-// Anthropic is deliberately excluded from the debater list and used as the
+// Anthropic is deliberately excluded from this list and used as the
 // preferred judge instead — matching the reference panel layout where the
-// Claude card carries the judge crown rather than debating.
+// Claude card carries the judge crown rather than debating. (Claude Opus 5
+// still debates separately — see findClaudeOpus5 below — so Anthropic
+// intentionally appears twice: once judging, once debating.)
 const JUDGE_PROVIDER = "anthropic";
-const MAJOR_LAB_PROVIDERS = ["openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek"];
+const MAJOR_LAB_PROVIDERS = ["openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek", "qwen"];
+
+/** Pinned per explicit request: Claude Opus 5 debates alongside the other
+ *  major labs specifically — not "Anthropic's algorithmic best" (which
+ *  resolves to a pricier Fable/Fast variant instead, since capabilityScore's
+ *  price tie-break caps out below Opus 5's own price). Matched by id
+ *  substring since a specific named generation, not "current best", is what
+ *  was asked for. */
+function findClaudeOpus5(catalog: OpenRouterModel[]): string | null {
+  const candidates = catalog.filter(
+    (m) => m.provider === "anthropic" && /opus-5/i.test(m.id) && !m.id.includes(":batch")
+  );
+  if (candidates.length === 0) return null;
+  const plain = candidates.find((m) => !/-fast$/i.test(m.id));
+  return (plain ?? candidates[0]).id;
+}
 
 function capabilityScore(model: OpenRouterModel): number {
   return (
@@ -220,12 +237,13 @@ function pickJudge(
 
 /** Recommends a default Council lineup: `count` debaters plus one separate
  *  judge. Prefers a stable panel of major-lab providers (OpenAI, Google,
- *  xAI, Meta, Mistral, DeepSeek) as debaters, with Anthropic's current best
- *  model as the judge — each lab's *current* best model, picked
- *  dynamically, not a hardcoded name — since a recognizable default panel
- *  reads better than whichever provider happens to top this week's raw
- *  token volume. Falls back to live OpenRouter trending data if the
- *  catalog doesn't have enough major-lab coverage (e.g. free-only mode
+ *  xAI, Meta, Mistral, DeepSeek, Qwen) plus Claude Opus 5 as debaters, with
+ *  a different Anthropic model (its current algorithmic best) as the judge
+ *  — each lab's *current* best model, picked dynamically, not a hardcoded
+ *  name (Opus 5 excepted, per explicit request), since a recognizable
+ *  default panel reads better than whichever provider happens to top this
+ *  week's raw token volume. Falls back to live OpenRouter trending data if
+ *  the catalog doesn't have enough major-lab coverage (e.g. free-only mode
  *  excludes one of them), then to a capability-only heuristic (reasoning +
  *  tools + context length — still no hardcoded model names) as a last
  *  resort. */
@@ -240,12 +258,15 @@ export function buildCouncilRecommendation(
   const majorLabPicks = MAJOR_LAB_PROVIDERS.map((p) => bestModelForProvider(p, catalog)).filter(
     (id): id is string => id !== null
   );
-  if (majorLabPicks.length >= count) {
-    const debaters = majorLabPicks.slice(0, count);
+  const opus5 = findClaudeOpus5(catalog);
+  const pinnedPicks = opus5 && !majorLabPicks.includes(opus5) ? [...majorLabPicks, opus5] : majorLabPicks;
+
+  if (pinnedPicks.length >= count) {
+    const debaters = pinnedPicks.slice(0, count);
     const judgeModelId =
       (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
-      majorLabPicks.slice(count).find((id) => !debaters.includes(id)) ??
-      pickJudge(trendingIds.length > 0 ? trendingIds : majorLabPicks, catalogMap, debaters);
+      pinnedPicks.slice(count).find((id) => !debaters.includes(id)) ??
+      pickJudge(trendingIds.length > 0 ? trendingIds : pinnedPicks, catalogMap, debaters);
     return { modelIds: debaters, judgeModelId, source: "trending" };
   }
 
@@ -253,7 +274,7 @@ export function buildCouncilRecommendation(
     // Backfill any remaining slots (beyond what major-lab coverage gave us)
     // with real trending picks from other providers.
     const debaters = pickOnePerProvider(
-      [...majorLabPicks, ...trendingIds],
+      [...pinnedPicks, ...trendingIds],
       catalogMap,
       count,
       new Set()

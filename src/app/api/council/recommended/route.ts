@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const modeParam = req.nextUrl.searchParams.get("mode") ?? "balanced";
   const freeOnly = req.nextUrl.searchParams.get("freeModelsOnly") === "1";
-  const count = COUNCIL_MODE_COUNTS[modeParam] ? Math.min(5, COUNCIL_MODE_COUNTS[modeParam]) : 5;
+  const count = COUNCIL_MODE_COUNTS[modeParam] ?? COUNCIL_MODE_COUNTS.balanced;
 
   let catalog = await listModels();
   if (freeOnly) {
