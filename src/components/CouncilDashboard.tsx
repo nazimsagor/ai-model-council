@@ -461,6 +461,23 @@ export function CouncilDashboard() {
           <div className="flex items-center justify-between gap-2 rounded-lg border-t border-border px-1 pt-2" title="Enter to send · Shift + Enter for a new line">
             {workflow === "compare" ? (
               <div className="flex min-w-0 items-center gap-1.5">
+                {selectedIds.size > 0 && (
+                  <div className="flex shrink-0 -space-x-1.5">
+                    {Array.from(selectedIds)
+                      .slice(0, 4)
+                      .map((id) => {
+                        const m = models.find((x) => x.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="block h-6 w-6 overflow-hidden rounded-full ring-2 ring-surface"
+                          >
+                            <ProviderIcon provider={m?.provider ?? "?"} className="h-6 w-6 rounded-none" />
+                          </span>
+                        );
+                      })}
+                  </div>
+                )}
                 <div className="relative">
                   <button
                     type="button"
