@@ -1,16 +1,6 @@
 import { chatCompletion } from "../openrouter";
+import { extractJson } from "./json";
 import type { CouncilRunSummary, DisagreementItem, ModelEvaluation, ModelRunResult } from "../types";
-
-function extractJson(text: string): unknown {
-  const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/, "");
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    const match = trimmed.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-    throw new Error("Synthesis response was not valid JSON");
-  }
-}
 
 function buildSynthesisPrompt(prompt: string, results: ModelRunResult[], evaluations: ModelEvaluation[]): string {
   const byModel = new Map(evaluations.map((e) => [e.modelId, e]));
@@ -72,7 +62,7 @@ export async function synthesizeAnswer(
       ],
       { temperature: 0.3, maxTokens: 3000, signal: controller.signal }
     );
-    const parsed = extractJson(content) as {
+    const parsed = extractJson(content, "Synthesis response") as {
       finalAnswer?: string;
       whyChosen?: string[];
       disagreements?: DisagreementItem[];

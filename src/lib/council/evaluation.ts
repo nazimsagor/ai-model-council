@@ -1,4 +1,5 @@
 import { chatCompletion } from "../openrouter";
+import { extractJson } from "./json";
 import {
   EVALUATION_DIMENSIONS,
   type EvaluationScores,
@@ -108,17 +109,6 @@ Respond with ONLY valid JSON, no markdown fences, in this exact shape:
 }`;
 }
 
-function extractJson(text: string): unknown {
-  const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/, "");
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    const match = trimmed.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-    throw new Error("Judge response was not valid JSON");
-  }
-}
-
 interface JudgeRawResult {
   judgeModelId: string;
   scoresByModelId: Map<string, { scores: EvaluationScores; justification: string }>;
@@ -142,7 +132,7 @@ async function runSingleJudge(
     { temperature: 0.1, maxTokens: 2000, signal }
   );
 
-  const parsed = extractJson(content) as Record<string, Partial<EvaluationScores> & { justification?: string }>;
+  const parsed = extractJson(content, "Judge response") as Record<string, Partial<EvaluationScores> & { justification?: string }>;
   const map = new Map<string, { scores: EvaluationScores; justification: string }>();
 
   for (const entry of entries) {
