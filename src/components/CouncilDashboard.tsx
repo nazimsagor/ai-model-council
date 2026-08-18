@@ -42,6 +42,8 @@ const PROMPT_MODES: { id: PromptMode; label: string }[] = [
 
 const BUDGETS = [0.5, 1, 5, 10];
 
+const COMBO_MODEL_COUNT = 3;
+
 const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: string }> = {
   chat: {
     plain: "One model.",
@@ -185,19 +187,20 @@ export function CouncilDashboard() {
 
   // Compare opens with a named combo already applied (default: Quality
   // leaders) — a curated, data-driven lineup instead of an empty picker.
-  // Re-resolves whenever the combo or council-size mode changes, but never
-  // once the user has manually picked models via "Manually pick".
+  // Every combo is a fixed size, independent of the Fast/Balanced/Deep/
+  // Maximum council-size mode (that mode only applies to Council). Re-
+  // resolves whenever the combo changes, but never once the user has
+  // manually picked models via "Manually pick".
   useEffect(() => {
     if (workflow !== "compare" || modelPicked.current) return;
     if (availableModels.length === 0) return;
     const timer = setTimeout(() => {
       if (workflow !== "compare" || modelPicked.current) return;
-      const count = MODES.find((m) => m.id === mode)?.count ?? 4;
-      const ids = resolveCombo(combo, availableModels, count);
+      const ids = resolveCombo(combo, availableModels, COMBO_MODEL_COUNT);
       setSelectedIds(new Set(ids));
     }, 0);
     return () => clearTimeout(timer);
-  }, [workflow, combo, mode, availableModels]);
+  }, [workflow, combo, availableModels]);
 
   function applyCombo(comboId: string) {
     modelPicked.current = false;
