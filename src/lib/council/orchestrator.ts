@@ -28,7 +28,7 @@ const DEFAULT_MODEL_TIMEOUT_MS = 130_000;
 // same as "actually hung". Instead, only abort for real silence: reset this
 // timer on every delta received, so a model only times out if it goes quiet
 // for this long, not just because the whole response took a while.
-const IDLE_TIMEOUT_MS = 40_000;
+const IDLE_TIMEOUT_MS = 60_000;
 // Judge/synthesis run sequentially AFTER the (parallel) debater phase, so
 // their budgets have to fit inside what's left of the route's maxDuration
 // (300s) — generous enough for a slow judge model, but capped so the whole
