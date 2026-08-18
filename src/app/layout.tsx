@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
-import { TopBar } from "@/components/TopBar";
+import { Sidebar } from "@/components/Sidebar";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { AppSettingsProvider } from "@/lib/client/appSettings";
 import "./globals.css";
@@ -35,12 +35,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${instrumentSerif.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full">
+      <body className="h-full">
         <AppSettingsProvider>
-          <Suspense fallback={<div className="h-14 border-b border-border bg-background" />}>
-            <TopBar />
-          </Suspense>
-          <main className="min-w-0">{children}</main>
+          <div className="flex h-full">
+            <Suspense fallback={<div className="w-60 shrink-0 border-r border-border bg-surface" />}>
+              <Sidebar />
+            </Suspense>
+            <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+          </div>
           <ApiKeyModal />
         </AppSettingsProvider>
       </body>
