@@ -6,6 +6,7 @@ import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
 import { createRun } from "@/lib/repository";
 import { getVisitorId } from "@/lib/session";
+import { getCurrentUser } from "@/lib/subscription";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -51,6 +52,20 @@ export async function POST(req: NextRequest) {
   }
 
   const workflow: Workflow = body.workflow ?? "council";
+
+  // Chat is free for every signed-in account; Council and Compare need a
+  // subscription. Enforced here (not just in the UI) since the UI gate is
+  // trivially bypassable by calling this endpoint directly.
+  if (workflow === "council" || workflow === "compare") {
+    const user = await getCurrentUser();
+    if (!user || !user.isSubscribed) {
+      return new Response(
+        JSON.stringify({ error: "Council and Compare need a subscription. Visit /subscribe to upgrade." }),
+        { status: 402 }
+      );
+    }
+  }
+
   const evaluate = workflow === "council";
   const isSingleModelWorkflow = workflow === "chat";
 

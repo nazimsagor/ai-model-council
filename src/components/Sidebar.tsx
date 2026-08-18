@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import type { RunListItem } from "@/lib/repository";
 import { useAppSettings } from "@/lib/client/appSettings";
+import { useCurrentUser } from "@/lib/client/useCurrentUser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
 import { Icon, ICON_PATHS } from "@/components/icons";
 import { LogoMark } from "@/components/LogoMark";
 
@@ -13,21 +15,24 @@ function NavLink({
   active,
   icon,
   label,
+  locked,
 }: {
   href: string;
   active: boolean;
   icon: keyof typeof ICON_PATHS;
   label: string;
+  locked?: boolean;
 }) {
   return (
     <Link
-      href={href}
+      href={locked ? "/subscribe" : href}
       className={`flex items-center gap-2.5 border-l-2 py-2 pl-2.5 pr-2 text-[13px] transition-colors ${
         active ? "border-accent font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"
       }`}
     >
       <Icon path={ICON_PATHS[icon]} className={`h-4 w-4 ${active ? "text-accent" : ""}`} />
       {label}
+      {locked && <Icon path={ICON_PATHS.lock} className="ml-auto h-3 w-3 text-muted-2" />}
     </Link>
   );
 }
@@ -35,10 +40,19 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const workflow = searchParams.get("workflow");
   const { freeModelsOnly, setFreeModelsOnly, hasApiKey, openKeyModal } = useAppSettings();
+  const { user } = useCurrentUser();
 
   const [recent, setRecent] = useState<RunListItem[] | null>(null);
+
+  async function signOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     fetch("/api/history")
@@ -68,8 +82,20 @@ export function Sidebar() {
       <nav className="flex flex-col gap-0.5">
         <NavLink href="/" active={onHome && !workflow} icon="home" label="Home" />
         <NavLink href="/?workflow=chat" active={onHome && workflow === "chat"} icon="chat" label="Chat" />
-        <NavLink href="/?workflow=compare" active={onHome && workflow === "compare"} icon="compare" label="Compare" />
-        <NavLink href="/?workflow=council" active={onHome && workflow === "council"} icon="council" label="Council" />
+        <NavLink
+          href="/?workflow=compare"
+          active={onHome && workflow === "compare"}
+          icon="compare"
+          label="Compare"
+          locked={!!user && !user.isSubscribed}
+        />
+        <NavLink
+          href="/?workflow=council"
+          active={onHome && workflow === "council"}
+          icon="council"
+          label="Council"
+          locked={!!user && !user.isSubscribed}
+        />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
       </nav>
 
@@ -149,6 +175,32 @@ export function Sidebar() {
         </span>
         <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
       </button>
+
+      {user && (
+        <div className="rounded-lg border border-border px-2.5 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-[12px] text-foreground" title={user.email ?? undefined}>
+              {user.email}
+            </span>
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="shrink-0 text-muted-2 transition-colors hover:text-foreground"
+            >
+              <Icon path={ICON_PATHS.logout} className="h-4 w-4" />
+            </button>
+          </div>
+          {user.isSubscribed ? (
+            <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-success">
+              Subscribed
+            </span>
+          ) : (
+            <Link href="/subscribe" className="mt-1 block text-[10px] font-medium text-accent-text hover:underline">
+              Upgrade for Council + Compare
+            </Link>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
