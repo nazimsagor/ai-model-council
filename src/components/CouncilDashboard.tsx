@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useModels } from "@/lib/client/useModels";
 import { useCouncilRun } from "@/lib/client/useCouncilRun";
 import { useAppSettings } from "@/lib/client/appSettings";
-import { providerColor, providerInitials } from "@/lib/client/providerColors";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import { ModelPickerModal } from "@/components/ModelPickerModal";
 import { StatusBoard } from "@/components/StatusBoard";
 import { ResponseCard } from "@/components/ResponseCard";
@@ -431,12 +431,7 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
                   {workflow === "chat" ? (
                     <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <span
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                          style={{ backgroundColor: providerColor(selectedModel?.provider ?? "?") }}
-                        >
-                          {selectedModel ? providerInitials(selectedModel.provider) : "?"}
-                        </span>
+                        <ProviderIcon provider={selectedModel?.provider ?? "?"} className="h-7 w-7" />
                         <div className="min-w-0">
                           <div className="truncate text-[13px] font-medium text-foreground">
                             {selectedModelName ?? "No model selected"}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon, ICON_PATHS } from "@/components/icons";
-import { providerColor, providerInitials } from "@/lib/client/providerColors";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import type { OpenRouterModel } from "@/lib/types";
 
 type QuickFilter = "all" | "vision" | "reasoning" | "tools" | "free" | "context" | "cheap";
@@ -213,12 +213,7 @@ export function ModelPickerModal({
                       : "border-border bg-background hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md"
                   }`}
                 >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                    style={{ backgroundColor: providerColor(m.provider) }}
-                  >
-                    {providerInitials(m.provider)}
-                  </span>
+                  <ProviderIcon provider={m.provider} className="h-8 w-8" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1 truncate text-[13px] font-medium text-foreground">
                       {m.name}

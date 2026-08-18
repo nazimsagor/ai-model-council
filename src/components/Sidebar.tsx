@@ -87,10 +87,25 @@ export function Sidebar({
         <NavLink href="/benchmarks" active={pathname.startsWith("/benchmarks")} icon="trophy" label="Benchmarks" />
       </nav>
 
-      <label className="flex items-center justify-between rounded-lg border border-border bg-background px-2.5 py-2 text-[12px]">
-        <span>
-          <span className="block font-medium text-foreground">Use free models</span>
-          <span className="block text-[10px] text-muted-2">No paid-model usage</span>
+      <label
+        className={`flex cursor-pointer items-center justify-between rounded-lg border px-2.5 py-2 text-[12px] transition-colors ${
+          freeModelsOnly ? "border-accent bg-accent-soft" : "border-border bg-background hover:border-border-strong"
+        }`}
+      >
+        <span className="flex items-center gap-2">
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
+              freeModelsOnly ? "bg-accent text-on-accent" : "bg-surface text-muted-2"
+            }`}
+          >
+            <Icon path={ICON_PATHS.bolt} className="h-3.5 w-3.5" filled={freeModelsOnly} />
+          </span>
+          <span>
+            <span className={`block font-medium ${freeModelsOnly ? "text-accent-text" : "text-foreground"}`}>
+              Use free models
+            </span>
+            <span className="block text-[10px] text-muted-2">No paid-model usage</span>
+          </span>
         </span>
         <button
           role="switch"
@@ -99,7 +114,7 @@ export function Sidebar({
           className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
         >
           <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
               freeModelsOnly ? "translate-x-4" : "translate-x-0.5"
             }`}
           />
