@@ -72,7 +72,7 @@ export function ResponseCard({
         </div>
       )}
 
-      <div className="scrollbar-thin max-h-80 overflow-y-auto px-3 py-2 text-[13px] leading-relaxed">
+      <div className="px-3 py-2 text-[13px] leading-relaxed">
         {state.status === "failed" || state.status === "timeout" ? (
           <p className="text-danger">{state.error ?? "This model failed to respond."}</p>
         ) : state.content ? (

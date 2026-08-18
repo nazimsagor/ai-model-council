@@ -299,13 +299,34 @@ export function CouncilDashboard() {
     );
   }
 
+  // Once judged, rank by score (best first) — the final, meaningful order.
+  // Before that, rank by who's actually finished so you can start reading
+  // real answers immediately instead of watching them sit in whatever order
+  // you happened to select them in while slower models keep thinking.
   const sortedForDisplay = useMemo(() => {
     if (!state) return [];
     const evalMap = new Map(state.evaluations.map((e) => [e.modelId, e]));
+    const hasEvaluations = state.evaluations.length > 0;
+    const statusRank = (id: string) => {
+      const status = state.modelStates[id]?.status;
+      if (status === "complete") return 0;
+      if (status === "failed" || status === "timeout") return 1;
+      return 2; // pending / streaming
+    };
     return [...state.order].sort((a, b) => {
-      const ea = evalMap.get(a)?.total ?? -1;
-      const eb = evalMap.get(b)?.total ?? -1;
-      return eb - ea;
+      if (hasEvaluations) {
+        const ea = evalMap.get(a)?.total ?? -1;
+        const eb = evalMap.get(b)?.total ?? -1;
+        if (ea !== eb) return eb - ea;
+      }
+      const ra = statusRank(a);
+      const rb = statusRank(b);
+      if (ra !== rb) return ra - rb;
+      if (ra === 0) {
+        // Both complete — whoever finished faster goes first.
+        return (state.modelStates[a]?.latencyMs ?? Infinity) - (state.modelStates[b]?.latencyMs ?? Infinity);
+      }
+      return 0;
     });
   }, [state]);
 
@@ -330,7 +351,7 @@ export function CouncilDashboard() {
   })();
 
   return (
-    <div className="mx-auto max-w-[720px] px-4 py-10 sm:px-6">
+    <div className={`mx-auto px-4 py-10 sm:px-6 ${state ? "max-w-[1400px]" : "max-w-[720px]"}`}>
       {!state && (
         <div className="mb-6 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-muted">
@@ -785,7 +806,7 @@ export function CouncilDashboard() {
           {state.order.length === 1 ? (
             <SingleResponseView modelId={state.order[0]} state={state.modelStates[state.order[0]]} />
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3">
               {sortedForDisplay.map((id, i) => {
                 const evalData = state.evaluations.find((e) => e.modelId === id);
                 return (
