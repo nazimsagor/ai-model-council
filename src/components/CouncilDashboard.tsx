@@ -803,6 +803,18 @@ export function CouncilDashboard() {
             </div>
           ))}
 
+          {state.phase === "done" && state.summary && (
+            <>
+              <VerdictPanel summary={state.summary} modelCount={state.order.length} />
+              <div>
+                <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-2">
+                  Where Models Disagree
+                </h3>
+                <DisagreementList disagreements={state.summary.disagreements} />
+              </div>
+            </>
+          )}
+
           {state.order.length === 1 ? (
             <SingleResponseView modelId={state.order[0]} state={state.modelStates[state.order[0]]} />
           ) : (
@@ -820,18 +832,6 @@ export function CouncilDashboard() {
                 );
               })}
             </div>
-          )}
-
-          {state.phase === "done" && state.summary && (
-            <>
-              <VerdictPanel summary={state.summary} modelCount={state.order.length} />
-              <div>
-                <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-2">
-                  Where Models Disagree
-                </h3>
-                <DisagreementList disagreements={state.summary.disagreements} />
-              </div>
-            </>
           )}
 
           {state.phase === "done" && (

@@ -55,7 +55,19 @@ export function RunReport({ run }: { run: CouncilRun }) {
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {run.summary && (
+          <>
+            <VerdictPanel summary={run.summary} modelCount={order.length} />
+            <div>
+              <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-2">
+                Where Models Disagree
+              </h3>
+              <DisagreementList disagreements={run.summary.disagreements} />
+            </div>
+          </>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
           {sortedForDisplay.map((id, i) => {
             const evalData = run.evaluations.find((e) => e.modelId === id);
             const state = modelStates[id];
@@ -71,18 +83,6 @@ export function RunReport({ run }: { run: CouncilRun }) {
             );
           })}
         </div>
-
-        {run.summary && (
-          <>
-            <VerdictPanel summary={run.summary} modelCount={order.length} />
-            <div>
-              <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-2">
-                Where Models Disagree
-              </h3>
-              <DisagreementList disagreements={run.summary.disagreements} />
-            </div>
-          </>
-        )}
 
         <CostSpeedSummary
           order={order}
