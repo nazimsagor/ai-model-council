@@ -19,7 +19,16 @@ export interface RunCouncilConfig {
   modelTimeoutMs?: number;
 }
 
-const DEFAULT_MODEL_TIMEOUT_MS = 110_000;
+// Absolute ceiling per debater — a hard cap regardless of activity, so a
+// pathologically slow model can't eat the whole function budget alone.
+const DEFAULT_MODEL_TIMEOUT_MS = 130_000;
+// Some providers (esp. "pro"/reasoning-heavy tiers under load) are just slow
+// to generate — they're still actively streaming tokens, just not quickly.
+// Killing them on a fixed wall-clock timer treats "slow but working" the
+// same as "actually hung". Instead, only abort for real silence: reset this
+// timer on every delta received, so a model only times out if it goes quiet
+// for this long, not just because the whole response took a while.
+const IDLE_TIMEOUT_MS = 40_000;
 // Judge/synthesis run sequentially AFTER the (parallel) debater phase, so
 // their budgets have to fit inside what's left of the route's maxDuration
 // (300s) — generous enough for a slow judge model, but capped so the whole
@@ -46,7 +55,22 @@ async function runOneModel(
   emit({ type: "status", modelId, status: "streaming" });
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
+  const absoluteTimer = setTimeout(() => controller.abort(), opts.timeoutMs);
+  let idleTimer: ReturnType<typeof setTimeout>;
+  let wentIdle = false;
+  const resetIdleTimer = () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      wentIdle = true;
+      controller.abort();
+    }, IDLE_TIMEOUT_MS);
+  };
+  resetIdleTimer();
+  const clearTimers = () => {
+    clearTimeout(absoluteTimer);
+    clearTimeout(idleTimer);
+  };
+
   const effectiveMaxTokens = model?.capabilities.reasoning
     ? Math.max(opts.maxTokens, MIN_MAX_TOKENS_FOR_REASONING_MODELS)
     : opts.maxTokens;
@@ -57,9 +81,12 @@ async function runOneModel(
       maxTokens: effectiveMaxTokens,
       signal: controller.signal,
       webSearch: opts.webSearch,
-      onDelta: (text) => emit({ type: "delta", modelId, text }),
+      onDelta: (text) => {
+        resetIdleTimer();
+        emit({ type: "delta", modelId, text });
+      },
     });
-    clearTimeout(timer);
+    clearTimers();
 
     const cost = model ? estimateCost(model, promptTokens, completionTokens) : 0;
     const result: ModelRunResult = {
@@ -77,7 +104,7 @@ async function runOneModel(
     emit({ type: "model_complete", result });
     return result;
   } catch (err) {
-    clearTimeout(timer);
+    clearTimers();
     const isTimeout = controller.signal.aborted;
     const result: ModelRunResult = {
       modelId,
@@ -85,7 +112,9 @@ async function runOneModel(
       status: isTimeout ? "timeout" : "failed",
       content: "",
       error: isTimeout
-        ? `Request timeout after ${Math.round(opts.timeoutMs / 1000)}s`
+        ? wentIdle
+          ? `The model stopped responding — no output for ${Math.round(IDLE_TIMEOUT_MS / 1000)}s.`
+          : `Request timeout after ${Math.round(opts.timeoutMs / 1000)}s.`
         : err instanceof Error
           ? err.message
           : String(err),
