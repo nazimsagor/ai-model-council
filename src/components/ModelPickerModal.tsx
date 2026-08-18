@@ -17,6 +17,15 @@ const QUICK_FILTERS: { id: QuickFilter; label: string }[] = [
   { id: "cheap", label: "Cheapest" },
 ];
 
+// Recognizable major labs surface first in the provider pill row — an
+// alphabetical-only list buries them behind smaller providers (Ai21,
+// Aion-Labs, Allenai, ...) that happen to sort earlier, making it look like
+// major labs are missing entirely.
+const MAJOR_PROVIDER_ORDER = [
+  "openai", "anthropic", "google", "x-ai", "meta-llama", "mistralai",
+  "deepseek", "qwen", "amazon", "microsoft", "cohere", "perplexity", "nvidia",
+];
+
 const FLAGSHIP_HINTS = [
   "gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4",
   "claude-3.7-sonnet", "claude-sonnet-4", "claude-opus-4", "claude-3.5-sonnet",
@@ -82,7 +91,16 @@ export function ModelPickerModal({
     return () => window.removeEventListener("keydown", onEscape);
   }, [open, onClose]);
 
-  const providers = useMemo(() => Array.from(new Set(models.map((m) => m.provider))).sort(), [models]);
+  const providers = useMemo(() => {
+    const all = Array.from(new Set(models.map((m) => m.provider)));
+    const major = MAJOR_PROVIDER_ORDER.filter((p) => all.includes(p));
+    const rest = all.filter((p) => !MAJOR_PROVIDER_ORDER.includes(p)).sort();
+    return [...major, ...rest];
+  }, [models]);
+  const [showAllProviders, setShowAllProviders] = useState(false);
+  const PROVIDER_PAGE_SIZE = 13;
+  const visibleProviders = showAllProviders ? providers : providers.slice(0, PROVIDER_PAGE_SIZE);
+  const hiddenProviderCount = providers.length - visibleProviders.length;
 
   const PAGE_SIZE = 60;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -177,7 +195,7 @@ export function ModelPickerModal({
             >
               All
             </button>
-            {providers.slice(0, 8).map((p) => (
+            {visibleProviders.map((p) => (
               <button
                 key={p}
                 onClick={() => setProvider(p)}
@@ -188,6 +206,14 @@ export function ModelPickerModal({
                 {p}
               </button>
             ))}
+            {hiddenProviderCount > 0 && (
+              <button
+                onClick={() => setShowAllProviders(true)}
+                className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-2 hover:text-foreground"
+              >
+                +{hiddenProviderCount} more
+              </button>
+            )}
           </div>
         </div>
 
