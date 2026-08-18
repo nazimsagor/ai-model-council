@@ -43,3 +43,54 @@ export function providerInitials(provider: string): string {
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return provider.slice(0, 2).toUpperCase();
 }
+
+// Official domain per provider, used to fetch their real logo. Only
+// providers with a real company/product site are listed — independent
+// finetune orgs and community accounts fall back to the abstract glyph.
+const PROVIDER_DOMAINS: Record<string, string> = {
+  openai: "openai.com",
+  anthropic: "anthropic.com",
+  google: "google.com",
+  "google-vertex": "google.com",
+  meta: "meta.com",
+  "meta-llama": "meta.com",
+  mistralai: "mistral.ai",
+  nvidia: "nvidia.com",
+  cohere: "cohere.com",
+  deepseek: "deepseek.com",
+  qwen: "qwen.ai",
+  "x-ai": "x.ai",
+  xai: "x.ai",
+  perplexity: "perplexity.ai",
+  microsoft: "microsoft.com",
+  amazon: "amazon.com",
+  poolside: "poolside.ai",
+  moonshotai: "moonshot.ai",
+  "z-ai": "z.ai",
+  zai: "z.ai",
+  liquid: "liquid.ai",
+  inception: "inceptionlabs.ai",
+  ai21: "ai21.com",
+  allenai: "allenai.org",
+  nousresearch: "nousresearch.com",
+  "arcee-ai": "arcee.ai",
+  morph: "morphllm.com",
+  relace: "relace.ai",
+  sakana: "sakana.ai",
+  "ibm-granite": "ibm.com",
+  thinkingmachines: "thinkingmachines.ai",
+  openrouter: "openrouter.ai",
+  baidu: "baidu.com",
+  bytedance: "bytedance.com",
+  "bytedance-seed": "bytedance.com",
+  tencent: "tencent.com",
+  minimax: "minimax.io",
+  stepfun: "stepfun.com",
+  rekaai: "reka.ai",
+};
+
+/** Official domain for a provider's logo, or null if there isn't a real
+ *  company site to fetch one from (independent/community accounts). */
+export function providerDomain(provider: string): string | null {
+  return PROVIDER_DOMAINS[provider.toLowerCase()] ?? null;
+}

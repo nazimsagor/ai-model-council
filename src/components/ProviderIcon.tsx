@@ -1,4 +1,7 @@
-import { providerColor, providerInitials } from "@/lib/client/providerColors";
+"use client";
+
+import { useState } from "react";
+import { providerColor, providerDomain, providerInitials } from "@/lib/client/providerColors";
 
 /** Small original abstract glyphs per provider — not copies of their
  *  trademarked logos, just distinct enough shapes/colors to recognize at a
@@ -116,9 +119,25 @@ function svgPath(d: string, color: string) {
 }
 
 export function ProviderIcon({ provider, className = "h-8 w-8" }: { provider: string; className?: string }) {
+  const [logoFailed, setLogoFailed] = useState(false);
   const color = providerColor(provider);
-  const glyph = Glyph({ provider, color });
+  const domain = providerDomain(provider);
 
+  if (domain && !logoFailed) {
+    return (
+      <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- external logo, not an optimizable local asset */}
+        <img
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
+          alt={`${provider} logo`}
+          className="h-full w-full object-contain"
+          onError={() => setLogoFailed(true)}
+        />
+      </span>
+    );
+  }
+
+  const glyph = Glyph({ provider, color });
   return (
     <span
       className={`flex shrink-0 items-center justify-center rounded-lg ${className}`}
