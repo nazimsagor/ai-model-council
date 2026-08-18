@@ -67,7 +67,7 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
 export function CouncilDashboard() {
   const { models, error: modelsError } = useModels();
   const { state, run, clear } = useCouncilRun();
-  const { freeModelsOnly, apiKey, hasApiKey, openKeyModal } = useAppSettings();
+  const { freeModelsOnly, apiKey, hasApiKey, openKeyModal, defaultModelId, setDefaultModelId } = useAppSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -122,6 +122,21 @@ export function CouncilDashboard() {
     () => (freeModelsOnly ? models.filter((m) => m.pricing.prompt === 0 && m.pricing.completion === 0) : models),
     [models, freeModelsOnly]
   );
+
+  // A saved default chat model doesn't need auto-select or a typed prompt —
+  // it's ready the moment Chat is opened, matching "keep your saved default".
+  useEffect(() => {
+    if (workflow !== "chat") return;
+    if (modelPicked.current || selectedIds.size > 0) return;
+    if (!defaultModelId) return;
+    if (!availableModels.some((m) => m.id === defaultModelId)) return;
+    const timer = setTimeout(() => {
+      if (modelPicked.current || selectedIds.size > 0) return;
+      modelPicked.current = true;
+      setSelectedIds(new Set([defaultModelId]));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [workflow, defaultModelId, availableModels, selectedIds.size]);
 
   async function autoSelect(count: number) {
     if (!prompt.trim() || availableModels.length === 0) return;
@@ -395,7 +410,9 @@ export function CouncilDashboard() {
                             {selectedModelName ?? "No model selected"}
                           </div>
                           <div className="truncate text-[11px] capitalize text-muted-2">
-                            {selectedModel?.provider ?? (autoBusy ? "Auto-selecting…" : "—")}
+                            {selectedModel?.id === defaultModelId
+                              ? "Your default model"
+                              : (selectedModel?.provider ?? (autoBusy ? "Auto-selecting…" : "—"))}
                           </div>
                         </div>
                       </div>
@@ -405,7 +422,8 @@ export function CouncilDashboard() {
                         </button>
                         {selectedModelName && (
                           <span className="flex items-center gap-1 text-[11px] text-success">
-                            <Icon path={ICON_PATHS.check} className="h-3 w-3" /> Ready
+                            <Icon path={ICON_PATHS.check} className="h-3 w-3" />
+                            {selectedModel?.id === defaultModelId ? "Default ready" : "Ready"}
                           </span>
                         )}
                       </div>
@@ -722,6 +740,8 @@ export function CouncilDashboard() {
         selected={selectedIds}
         onToggle={toggleModel}
         singleSelect={workflow === "chat"}
+        defaultModelId={workflow === "chat" ? defaultModelId : null}
+        onSetDefault={workflow === "chat" ? setDefaultModelId : undefined}
       />
     </div>
   );

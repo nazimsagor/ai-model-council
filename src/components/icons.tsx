@@ -1,7 +1,22 @@
-export function Icon({ path, className = "h-4 w-4" }: { path: string; className?: string }) {
+export function Icon({
+  path,
+  className = "h-4 w-4",
+  filled = false,
+}: {
+  path: string;
+  className?: string;
+  filled?: boolean;
+}) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={`shrink-0 ${className}`} aria-hidden>
-      <path d={path} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={path}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={filled ? "currentColor" : "none"}
+      />
     </svg>
   );
 }
@@ -24,4 +39,5 @@ export const ICON_PATHS = {
   close: "M5 5l10 10M15 5 5 15",
   menu: "M3 5h14M3 10h14M3 15h14",
   plus: "M10 4v12M4 10h12",
+  star: "M10 2.5 12.5 7.6 18 8.4 14 12.3 15 17.8 10 15.1 5 17.8 6 12.3 2 8.4 7.5 7.6 10 2.5Z",
 } as const;

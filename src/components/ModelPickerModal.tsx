@@ -54,6 +54,8 @@ export function ModelPickerModal({
   selected,
   onToggle,
   singleSelect,
+  defaultModelId,
+  onSetDefault,
 }: {
   open: boolean;
   onClose: () => void;
@@ -63,6 +65,8 @@ export function ModelPickerModal({
   selected: Set<string>;
   onToggle: (id: string) => void;
   singleSelect: boolean;
+  defaultModelId?: string | null;
+  onSetDefault?: (id: string | null) => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<QuickFilter>("all");
@@ -99,6 +103,8 @@ export function ModelPickerModal({
   }, [models, query, filter, provider]);
 
   const selectedModels = useMemo(() => models.filter((m) => selected.has(m.id)), [models, selected]);
+  const singleSelectedId = singleSelect ? (selectedModels[0]?.id ?? null) : null;
+  const isCurrentDefault = singleSelectedId !== null && singleSelectedId === defaultModelId;
 
   if (!open) return null;
 
@@ -208,9 +214,14 @@ export function ModelPickerModal({
                     {m.provider.slice(0, 1)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-foreground">{m.name}</span>
+                    <span className="flex items-center gap-1 truncate text-[13px] font-medium text-foreground">
+                      {m.name}
+                      {m.id === defaultModelId && <Icon path={ICON_PATHS.star} className="h-3 w-3 shrink-0 text-accent" filled />}
+                    </span>
                     <span className="block truncate text-[11px] text-muted-2">
-                      {m.provider} · {formatContext(m.contextLength)} · {formatPrice(m.pricing.completion)}
+                      {m.id === defaultModelId
+                        ? "Your default model"
+                        : `${m.provider} · ${formatContext(m.contextLength)} · ${formatPrice(m.pricing.completion)}`}
                     </span>
                   </span>
                   <span
@@ -233,12 +244,27 @@ export function ModelPickerModal({
           <span className="text-[11px] text-muted-2">
             {singleSelect ? "This model will answer your next message." : `${selected.size} model${selected.size === 1 ? "" : "s"} selected.`}
           </span>
-          <button
-            onClick={onClose}
-            className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-3">
+            {singleSelect && onSetDefault && singleSelectedId && (
+              <button
+                onClick={() => onSetDefault(isCurrentDefault ? null : singleSelectedId)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  isCurrentDefault
+                    ? "border-accent bg-accent-soft text-accent-text"
+                    : "border-border text-muted hover:text-foreground"
+                }`}
+              >
+                <Icon path={ICON_PATHS.star} className="h-3.5 w-3.5" filled={isCurrentDefault} />
+                {isCurrentDefault ? "Default model" : "Set as default"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>
