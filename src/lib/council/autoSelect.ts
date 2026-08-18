@@ -147,7 +147,12 @@ export interface CouncilRecommendation {
 // small/regional provider happens to be topping this week's raw token
 // volume. Each provider's actual model is still picked dynamically from
 // the live catalog below, so this never goes stale.
-const MAJOR_LAB_PROVIDERS = ["anthropic", "openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek"];
+//
+// Anthropic is deliberately excluded from the debater list and used as the
+// preferred judge instead — matching the reference panel layout where the
+// Claude card carries the judge crown rather than debating.
+const JUDGE_PROVIDER = "anthropic";
+const MAJOR_LAB_PROVIDERS = ["openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek"];
 
 function capabilityScore(model: OpenRouterModel): number {
   return (
@@ -214,11 +219,12 @@ function pickJudge(
 }
 
 /** Recommends a default Council lineup: `count` debaters plus one separate
- *  judge. Prefers a stable panel of major-lab providers (Anthropic, OpenAI,
- *  Google, xAI, Meta, Mistral, DeepSeek) — each lab's *current* best model,
- *  picked dynamically, not a hardcoded name — since a recognizable default
- *  panel reads better than whichever provider happens to top this week's
- *  raw token volume. Falls back to live OpenRouter trending data if the
+ *  judge. Prefers a stable panel of major-lab providers (OpenAI, Google,
+ *  xAI, Meta, Mistral, DeepSeek) as debaters, with Anthropic's current best
+ *  model as the judge — each lab's *current* best model, picked
+ *  dynamically, not a hardcoded name — since a recognizable default panel
+ *  reads better than whichever provider happens to top this week's raw
+ *  token volume. Falls back to live OpenRouter trending data if the
  *  catalog doesn't have enough major-lab coverage (e.g. free-only mode
  *  excludes one of them), then to a capability-only heuristic (reasoning +
  *  tools + context length — still no hardcoded model names) as a last
@@ -229,6 +235,7 @@ export function buildCouncilRecommendation(
   count: number
 ): CouncilRecommendation {
   const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+  const preferredJudge = bestModelForProvider(JUDGE_PROVIDER, catalog);
 
   const majorLabPicks = MAJOR_LAB_PROVIDERS.map((p) => bestModelForProvider(p, catalog)).filter(
     (id): id is string => id !== null
@@ -236,6 +243,7 @@ export function buildCouncilRecommendation(
   if (majorLabPicks.length >= count) {
     const debaters = majorLabPicks.slice(0, count);
     const judgeModelId =
+      (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
       majorLabPicks.slice(count).find((id) => !debaters.includes(id)) ??
       pickJudge(trendingIds.length > 0 ? trendingIds : majorLabPicks, catalogMap, debaters);
     return { modelIds: debaters, judgeModelId, source: "trending" };
@@ -251,7 +259,9 @@ export function buildCouncilRecommendation(
       new Set()
     );
     if (debaters.length === count) {
-      const judgeModelId = pickJudge(trendingIds, catalogMap, debaters);
+      const judgeModelId =
+        (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
+        pickJudge(trendingIds, catalogMap, debaters);
       return { modelIds: debaters, judgeModelId, source: "trending" };
     }
   }
@@ -271,7 +281,9 @@ export function buildCouncilRecommendation(
     .map((s) => s.model.id);
 
   const debaters = pickOnePerProvider(scored, catalogMap, count, new Set());
-  const judgeModelId = pickJudge(scored, catalogMap, debaters);
+  const judgeModelId =
+    (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
+    pickJudge(scored, catalogMap, debaters);
   return { modelIds: debaters, judgeModelId, source: "heuristic" };
 }
 
