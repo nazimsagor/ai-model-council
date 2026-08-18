@@ -114,11 +114,19 @@ interface JudgeRawResult {
   scoresByModelId: Map<string, { scores: EvaluationScores; justification: string }>;
 }
 
+// Reasoning-capable judges (e.g. Claude Fable 5) can spend part of their
+// token budget on internal "thinking" before ever writing the JSON verdict
+// — with a low fixed budget, that reasoning eats into the space needed to
+// finish the JSON, truncating it mid-string and producing "not valid JSON"
+// even though nothing is actually broken about the response format.
+const MIN_MAX_TOKENS_FOR_REASONING_JUDGE = 6000;
+
 async function runSingleJudge(
   apiKey: string,
   judgeModelId: string,
   prompt: string,
   entries: BlindEntry[],
+  isReasoning: boolean,
   signal?: AbortSignal
 ): Promise<JudgeRawResult> {
   const judgePrompt = buildJudgePrompt(prompt, entries);
@@ -129,7 +137,7 @@ async function runSingleJudge(
       { role: "system", content: "You are a rigorous, unbiased evaluation engine. Output strict JSON only." },
       { role: "user", content: judgePrompt },
     ],
-    { temperature: 0.1, maxTokens: 2000, signal }
+    { temperature: 0.1, maxTokens: isReasoning ? MIN_MAX_TOKENS_FOR_REASONING_JUDGE : 2000, signal }
   );
 
   const parsed = extractJson(content, "Judge response") as Record<string, Partial<EvaluationScores> & { justification?: string }>;
@@ -176,6 +184,7 @@ export async function evaluateResponses(
   prompt: string,
   results: ModelRunResult[],
   judgeModelIds: string[],
+  catalog: OpenRouterModel[] = [],
   timeoutMs = 45_000
 ): Promise<JudgeOutcome> {
   const entries = buildBlindEntries(results);
@@ -183,11 +192,15 @@ export async function evaluateResponses(
     return { evaluations: [], judgesUsed: [], judgesFailed: [] };
   }
 
+  const catalogMap = new Map(catalog.map((m) => [m.id, m]));
   const outcomes = await Promise.allSettled(
     judgeModelIds.map((judgeId) => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      return runSingleJudge(apiKey, judgeId, prompt, entries, controller.signal).finally(() => clearTimeout(timer));
+      const isReasoning = catalogMap.get(judgeId)?.capabilities.reasoning ?? false;
+      return runSingleJudge(apiKey, judgeId, prompt, entries, isReasoning, controller.signal).finally(() =>
+        clearTimeout(timer)
+      );
     })
   );
 

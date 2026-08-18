@@ -182,6 +182,7 @@ export async function runCouncil(
       config.prompt,
       successful,
       config.judgeModelIds,
+      catalog,
       JUDGE_TIMEOUT_MS
     );
     if (judgesFailed.length > 0) {
@@ -203,15 +204,16 @@ export async function runCouncil(
     // to the top-scoring individual response rather than losing the verdict.
     let synthesis;
     try {
+      const synthModel = catalogMap.get(synthesizerModelId);
       synthesis = await synthesizeAnswer(
         config.apiKey,
         synthesizerModelId,
         config.prompt,
         successful,
         evaluations,
+        synthModel?.capabilities.reasoning ?? false,
         SYNTHESIS_TIMEOUT_MS
       );
-      const synthModel = catalogMap.get(synthesizerModelId);
       if (synthModel) {
         // Rough cost estimate for the synthesis call using average token counts.
         evaluationCost += estimateCost(synthModel, 1500, 800);

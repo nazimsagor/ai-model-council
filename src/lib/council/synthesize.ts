@@ -42,12 +42,19 @@ export interface SynthesisOutcome {
   disagreements: DisagreementItem[];
 }
 
+// Reasoning-capable synthesizers can spend part of their token budget on
+// internal "thinking" before writing the JSON verdict — with a low fixed
+// budget, that reasoning eats into the space needed to finish the (often
+// long, multi-section) finalAnswer, truncating the JSON mid-string.
+const MIN_MAX_TOKENS_FOR_REASONING_SYNTHESIS = 8000;
+
 export async function synthesizeAnswer(
   apiKey: string,
   synthesizerModelId: string,
   prompt: string,
   results: ModelRunResult[],
   evaluations: ModelEvaluation[],
+  isReasoning = false,
   timeoutMs = 60_000
 ): Promise<SynthesisOutcome> {
   const controller = new AbortController();
@@ -60,7 +67,7 @@ export async function synthesizeAnswer(
         { role: "system", content: "You synthesize multiple AI answers into one superior answer. Output strict JSON only." },
         { role: "user", content: buildSynthesisPrompt(prompt, results, evaluations) },
       ],
-      { temperature: 0.3, maxTokens: 3000, signal: controller.signal }
+      { temperature: 0.3, maxTokens: isReasoning ? MIN_MAX_TOKENS_FOR_REASONING_SYNTHESIS : 3000, signal: controller.signal }
     );
     const parsed = extractJson(content, "Synthesis response") as {
       finalAnswer?: string;

@@ -72,7 +72,7 @@ export async function executeBenchmarkRun(
         let evaluations: Awaited<ReturnType<typeof evaluateResponses>>["evaluations"] = [];
         if (judgeModelIds.length > 0) {
           try {
-            const outcome = await evaluateResponses(apiKey, question.prompt, results, judgeModelIds);
+            const outcome = await evaluateResponses(apiKey, question.prompt, results, judgeModelIds, catalog);
             evaluations = outcome.evaluations;
           } catch {
             // Judge failure shouldn't block persisting the raw model answers.
