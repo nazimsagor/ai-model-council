@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-openrouter-key")?.trim();
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "Add your OpenRouter API key first (see the key icon in the sidebar)." }),
+      JSON.stringify({ error: "Add your OpenRouter API key first (see the menu in the top right)." }),
       { status: 401 }
     );
   }

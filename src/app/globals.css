@@ -2,7 +2,6 @@
 
 :root {
   --background: #fbf3ec;
-  --sidebar: #f5e3d2;
   --surface: #ffffff;
   --surface-raised: #fffdf9;
   --border: #ead9c8;
@@ -33,7 +32,6 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #1c1512;
-    --sidebar: #20180f;
     --surface: #241b16;
     --surface-raised: #2a201a;
     --border: #3a2c22;
@@ -60,7 +58,6 @@
 
 @theme inline {
   --color-background: var(--background);
-  --color-sidebar: var(--sidebar);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
-import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { AppSettingsProvider } from "@/lib/client/appSettings";
 import "./globals.css";
@@ -32,14 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${bricolage.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full">
+      <body className="min-h-full">
         <AppSettingsProvider>
-          <div className="flex h-full">
-            <Suspense fallback={<div className="w-60 shrink-0 border-r border-border bg-sidebar" />}>
-              <Sidebar />
-            </Suspense>
-            <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
-          </div>
+          <Suspense fallback={<div className="h-14 border-b border-border bg-background" />}>
+            <TopBar />
+          </Suspense>
+          <main className="min-w-0">{children}</main>
           <ApiKeyModal />
         </AppSettingsProvider>
       </body>

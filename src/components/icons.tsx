@@ -22,4 +22,6 @@ export const ICON_PATHS = {
   trophy: "M6 3h8v4a4 4 0 0 1-8 0V3ZM4 4H2v2a3 3 0 0 0 3 3M16 4h2v2a3 3 0 0 0-3 3M8 13v2a2 2 0 0 0 4 0v-2M7 17h6",
   warning: "M10 3 2 17h16L10 3ZM10 8.5v3.5M10 14.5v.01",
   close: "M5 5l10 10M15 5 5 15",
+  menu: "M3 5h14M3 10h14M3 15h14",
+  plus: "M10 4v12M4 10h12",
 } as const;

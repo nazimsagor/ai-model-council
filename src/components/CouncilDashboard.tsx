@@ -257,42 +257,33 @@ export function CouncilDashboard() {
   })();
 
   return (
-    <div className="mx-auto max-w-[1000px] px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-[720px] px-4 py-10 sm:px-6">
       {!state && (
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-success">
             <span className="h-1.5 w-1.5 rounded-full bg-success" /> {pillLabel}
           </span>
-          <h1 className="mt-4 font-heading text-[30px] font-bold tracking-tight sm:text-[36px]">
+          <h1 className="mt-4 font-heading text-[28px] font-bold tracking-tight sm:text-[32px]">
             {copy.plain} <span className="text-accent">{copy.accent}</span>
           </h1>
-          <p className="mx-auto mt-2 max-w-xl text-[14px] text-muted">{copy.sub}</p>
+          <p className="mx-auto mt-2 max-w-md text-[13px] text-muted">{copy.sub}</p>
         </div>
       )}
 
       {!state && (
-        <div className="mb-4">
-          <p className="mb-2 text-[12px] font-medium text-muted">
-            Choose how the council should run it{" "}
-            <span className="font-normal text-muted-2">— you can configure it below before sending.</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mb-4 flex justify-center">
+          <div className="inline-flex flex-wrap justify-center gap-1 rounded-full border border-border bg-surface p-1">
             {WORKFLOWS.map((w) => (
               <button
                 key={w.id}
                 onClick={() => setWorkflow(w.id)}
-                className={`rounded-xl border px-3 py-3 text-left transition-colors ${
-                  workflow === w.id
-                    ? "border-accent bg-surface shadow-sm"
-                    : "border-border bg-surface/60 hover:border-border-strong"
+                title={w.desc}
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  workflow === w.id ? "bg-accent text-on-accent" : "text-muted hover:text-foreground"
                 }`}
               >
-                <div className="mb-1 flex items-center justify-between">
-                  <Icon path={ICON_PATHS[w.icon]} className="h-[18px] w-[18px] text-accent" />
-                  {workflow === w.id && <Icon path={ICON_PATHS.check} className="h-3.5 w-3.5 text-accent" />}
-                </div>
-                <div className="text-[13px] font-semibold">{w.label}</div>
-                <div className="mt-0.5 text-[11px] leading-snug text-muted">{w.desc}</div>
+                <Icon path={ICON_PATHS[w.icon]} className="h-3.5 w-3.5" />
+                {w.label}
               </button>
             ))}
           </div>
