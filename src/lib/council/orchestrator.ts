@@ -20,6 +20,12 @@ export interface RunCouncilConfig {
 }
 
 const DEFAULT_MODEL_TIMEOUT_MS = 110_000;
+// Judge/synthesis run sequentially AFTER the (parallel) debater phase, so
+// their budgets have to fit inside what's left of the route's maxDuration
+// (300s) — generous enough for a slow judge model, but capped so the whole
+// pipeline can't blow past the function timeout.
+const JUDGE_TIMEOUT_MS = 75_000;
+const SYNTHESIS_TIMEOUT_MS = 75_000;
 // Reasoning-capable models can spend their entire token budget on internal
 // "thinking" and never emit visible content if maxTokens is small — they
 // still get billed for those tokens, so the user pays for nothing. Give
@@ -146,7 +152,8 @@ export async function runCouncil(
       config.apiKey,
       config.prompt,
       successful,
-      config.judgeModelIds
+      config.judgeModelIds,
+      JUDGE_TIMEOUT_MS
     );
     if (judgesFailed.length > 0) {
       emit({
@@ -161,11 +168,41 @@ export async function runCouncil(
 
     emit({ type: "synthesizing" });
     const synthesizerModelId = config.judgeModelIds[0] ?? successful[0].modelId;
-    const synthesis = await synthesizeAnswer(config.apiKey, synthesizerModelId, config.prompt, successful, evaluations);
-    const synthModel = catalogMap.get(synthesizerModelId);
-    if (synthModel) {
-      // Rough cost estimate for the synthesis call using average token counts.
-      evaluationCost += estimateCost(synthModel, 1500, 800);
+    // The synthesis call can fail (timeout, rate limit, bad JSON) just like any
+    // other model call — with a single judge there's no other model to fall
+    // back on, so a failure here must NOT take down the whole run. Fall back
+    // to the top-scoring individual response rather than losing the verdict.
+    let synthesis;
+    try {
+      synthesis = await synthesizeAnswer(
+        config.apiKey,
+        synthesizerModelId,
+        config.prompt,
+        successful,
+        evaluations,
+        SYNTHESIS_TIMEOUT_MS
+      );
+      const synthModel = catalogMap.get(synthesizerModelId);
+      if (synthModel) {
+        // Rough cost estimate for the synthesis call using average token counts.
+        evaluationCost += estimateCost(synthModel, 1500, 800);
+      }
+    } catch (err) {
+      emit({
+        type: "error",
+        message: `Synthesis by ${synthesizerModelId} failed (${err instanceof Error ? err.message : String(err)}); showing the top-scoring individual response instead.`,
+      });
+      const fallbackTop = [...evaluations].sort((a, b) => b.total - a.total)[0];
+      const fallbackResult = fallbackTop
+        ? successful.find((r) => r.modelId === fallbackTop.modelId)
+        : successful[0];
+      synthesis = {
+        finalAnswer: fallbackResult?.content ?? "The council could not produce a synthesized answer.",
+        whyChosen: fallbackResult
+          ? [`The synthesizer model failed, so this is ${fallbackResult.modelId}'s top-scoring individual response, shown as-is.`]
+          : [],
+        disagreements: [],
+      };
     }
 
     const summary = buildSummary(synthesis, evaluations);
