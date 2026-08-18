@@ -141,6 +141,35 @@ export interface CouncilRecommendation {
   source: "trending" | "heuristic";
 }
 
+// Stable list of major-lab *providers* (not model names — provider slugs
+// rarely change even as individual models ship/retire) so the default
+// Council panel is built from recognizable labs rather than whichever
+// small/regional provider happens to be topping this week's raw token
+// volume. Each provider's actual model is still picked dynamically from
+// the live catalog below, so this never goes stale.
+const MAJOR_LAB_PROVIDERS = ["anthropic", "openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek"];
+
+function capabilityScore(model: OpenRouterModel): number {
+  return (
+    (model.capabilities.reasoning ? 3 : 0) +
+    (model.capabilities.tools ? 1 : 0) +
+    Math.min(model.contextLength / 500_000, 2) +
+    // Gentle tie-break, not a primary signal: within one lab, the pricier
+    // tier is consistently the more capable one (Opus > Sonnet > Haiku,
+    // Pro > Flash), so this nudges ties toward the premium variant.
+    Math.min((model.pricing.completion * 1_000_000) / 50, 1)
+  );
+}
+
+/** The best current interactive model for one provider, by real capability
+ *  signals (reasoning/tools/context) — never a hardcoded model id, so a
+ *  provider's pick automatically follows whatever they currently ship. */
+function bestModelForProvider(provider: string, catalog: OpenRouterModel[]): string | null {
+  const candidates = catalog.filter((m) => m.provider === provider && !m.id.includes(":batch"));
+  if (candidates.length === 0) return null;
+  return candidates.sort((a, b) => capabilityScore(b) - capabilityScore(a))[0].id;
+}
+
 /** Picks up to `n` models from `orderedIds`, at most one per provider, so a
  *  council of "trending" or "best" models isn't secretly 3 variants of the
  *  same lab's model. */
@@ -185,11 +214,15 @@ function pickJudge(
 }
 
 /** Recommends a default Council lineup: `count` debaters plus one separate
- *  judge, preferring models that are actually trending on OpenRouter right
- *  now (real usage data) over any hardcoded notion of "flagship" model
- *  names, which inevitably goes stale as new models ship. Falls back to a
- *  capability-only heuristic (reasoning + tools + context length — no model
- *  names) if trending data isn't available. */
+ *  judge. Prefers a stable panel of major-lab providers (Anthropic, OpenAI,
+ *  Google, xAI, Meta, Mistral, DeepSeek) — each lab's *current* best model,
+ *  picked dynamically, not a hardcoded name — since a recognizable default
+ *  panel reads better than whichever provider happens to top this week's
+ *  raw token volume. Falls back to live OpenRouter trending data if the
+ *  catalog doesn't have enough major-lab coverage (e.g. free-only mode
+ *  excludes one of them), then to a capability-only heuristic (reasoning +
+ *  tools + context length — still no hardcoded model names) as a last
+ *  resort. */
 export function buildCouncilRecommendation(
   catalog: OpenRouterModel[],
   trendingIds: string[],
@@ -197,8 +230,26 @@ export function buildCouncilRecommendation(
 ): CouncilRecommendation {
   const catalogMap = new Map(catalog.map((m) => [m.id, m]));
 
+  const majorLabPicks = MAJOR_LAB_PROVIDERS.map((p) => bestModelForProvider(p, catalog)).filter(
+    (id): id is string => id !== null
+  );
+  if (majorLabPicks.length >= count) {
+    const debaters = majorLabPicks.slice(0, count);
+    const judgeModelId =
+      majorLabPicks.slice(count).find((id) => !debaters.includes(id)) ??
+      pickJudge(trendingIds.length > 0 ? trendingIds : majorLabPicks, catalogMap, debaters);
+    return { modelIds: debaters, judgeModelId, source: "trending" };
+  }
+
   if (trendingIds.length > 0) {
-    const debaters = pickOnePerProvider(trendingIds, catalogMap, count, new Set());
+    // Backfill any remaining slots (beyond what major-lab coverage gave us)
+    // with real trending picks from other providers.
+    const debaters = pickOnePerProvider(
+      [...majorLabPicks, ...trendingIds],
+      catalogMap,
+      count,
+      new Set()
+    );
     if (debaters.length === count) {
       const judgeModelId = pickJudge(trendingIds, catalogMap, debaters);
       return { modelIds: debaters, judgeModelId, source: "trending" };
