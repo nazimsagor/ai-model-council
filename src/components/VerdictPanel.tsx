@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { CollapsibleMarkdown } from "@/components/CollapsibleMarkdown";
 import { RankBadge } from "@/components/RankBadge";
 import type { CouncilRunSummary } from "@/lib/types";
-
-const COLLAPSED_HEIGHT_PX = 420;
 
 function confidenceColor(confidence: number): string {
   if (confidence >= 75) return "bg-success";
@@ -21,19 +17,6 @@ function confidenceTextColor(confidence: number): string {
 }
 
 export function VerdictPanel({ summary, modelCount }: { summary: CouncilRunSummary; modelCount: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const [overflowing, setOverflowing] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setExpanded(false);
-      const el = contentRef.current;
-      setOverflowing(el ? el.scrollHeight > COLLAPSED_HEIGHT_PX + 8 : false);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [summary.finalAnswer]);
-
   return (
     <div className="rounded-lg border border-border-strong bg-surface-raised">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -46,26 +29,12 @@ export function VerdictPanel({ summary, modelCount }: { summary: CouncilRunSumma
       </div>
 
       <div className="px-5 py-4">
-        <div className="relative">
-          <div
-            ref={contentRef}
-            style={!expanded && overflowing ? { maxHeight: COLLAPSED_HEIGHT_PX, overflow: "hidden" } : undefined}
-            className="prose-sm max-w-none text-[14px] leading-relaxed [&_a]:text-accent-text [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-2"
-          >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary.finalAnswer}</ReactMarkdown>
-          </div>
-          {!expanded && overflowing && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface-raised to-transparent" />
-          )}
-        </div>
-        {overflowing && (
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="mt-2 text-[12px] font-semibold text-accent-text hover:underline"
-          >
-            {expanded ? "Show less" : "Show full answer"}
-          </button>
-        )}
+        <CollapsibleMarkdown
+          content={summary.finalAnswer}
+          maxHeight={420}
+          className="prose-sm max-w-none text-[14px] leading-relaxed [&_a]:text-accent-text [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-2"
+          fadeClassName="from-surface-raised to-transparent"
+        />
       </div>
 
       {summary.whyChosen.length > 0 && (

@@ -1,7 +1,6 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { CollapsibleMarkdown } from "@/components/CollapsibleMarkdown";
 import { RankBadge } from "@/components/RankBadge";
 import type { ModelEvaluation, EvaluationScores } from "@/lib/types";
 import type { ModelState } from "@/lib/client/runState";
@@ -76,9 +75,12 @@ export function ResponseCard({
         {state.status === "failed" || state.status === "timeout" ? (
           <p className="text-danger">{state.error ?? "This model failed to respond."}</p>
         ) : state.content ? (
-          <div className="prose-sm max-w-none [&_a]:text-accent-text [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-2">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{state.content}</ReactMarkdown>
-          </div>
+          <CollapsibleMarkdown
+            content={state.content}
+            maxHeight={320}
+            className="prose-sm max-w-none [&_a]:text-accent-text [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-2"
+            fadeClassName="from-surface to-transparent"
+          />
         ) : (
           <p className="text-muted-2">Waiting for response…</p>
         )}
