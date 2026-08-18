@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon, ICON_PATHS } from "@/components/icons";
+import { providerColor, providerInitials } from "@/lib/client/providerColors";
 import type { OpenRouterModel } from "@/lib/types";
 
 type QuickFilter = "all" | "vision" | "reasoning" | "tools" | "free" | "context" | "cheap";
@@ -206,12 +207,17 @@ export function ModelPickerModal({
                 <button
                   key={m.id}
                   onClick={() => onToggle(m.id)}
-                  className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                    isSelected ? "border-accent bg-accent-soft" : "border-border bg-background hover:border-border-strong"
+                  className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left shadow-sm transition-all ${
+                    isSelected
+                      ? "border-accent bg-accent-soft"
+                      : "border-border bg-background hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md"
                   }`}
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-[11px] font-semibold uppercase text-muted">
-                    {m.provider.slice(0, 1)}
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ backgroundColor: providerColor(m.provider) }}
+                  >
+                    {providerInitials(m.provider)}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1 truncate text-[13px] font-medium text-foreground">
@@ -225,8 +231,10 @@ export function ModelPickerModal({
                     </span>
                   </span>
                   <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[13px] ${
-                      isSelected ? "border-accent bg-accent text-on-accent" : "border-border-strong text-muted-2"
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[13px] transition-colors ${
+                      isSelected
+                        ? "absolute -right-1.5 -top-1.5 border-2 border-background bg-accent text-on-accent"
+                        : "border-border-strong text-muted-2"
                     }`}
                   >
                     {isSelected ? <Icon path={ICON_PATHS.check} className="h-3 w-3" /> : "+"}
