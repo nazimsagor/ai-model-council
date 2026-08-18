@@ -31,8 +31,19 @@ interface RawOpenRouterModel {
   description?: string;
   context_length?: number;
   pricing?: { prompt?: string; completion?: string };
-  architecture?: { modality?: string; input_modalities?: string[] };
+  architecture?: { modality?: string; input_modalities?: string[]; output_modalities?: string[] };
   supported_parameters?: string[];
+}
+
+/** This app only does text chat completions — models that generate audio,
+ *  image, or video output (e.g. music-generation models) return unusable
+ *  garbage from our /chat/completions calls, so they're excluded from the
+ *  catalog entirely rather than showing up as a confusing "successful"
+ *  response full of timestamps or binary data. */
+function isTextOutputModel(raw: RawOpenRouterModel): boolean {
+  const outputs = raw.architecture?.output_modalities;
+  if (!outputs || outputs.length === 0) return true; // assume text if unreported
+  return outputs.every((m) => m === "text");
 }
 
 // Maps OpenRouter's dated "canonical_slug" (used by the rankings API) back to
@@ -81,13 +92,14 @@ export async function listModels(forceRefresh = false): Promise<OpenRouterModel[
     throw new Error(`Failed to fetch OpenRouter models: ${res.status} ${res.statusText}`);
   }
   const json = (await res.json()) as { data: RawOpenRouterModel[] };
-  const models = json.data.map(parseModel).sort((a, b) => a.id.localeCompare(b.id));
+  const textModels = json.data.filter(isTextOutputModel);
+  const models = textModels.map(parseModel).sort((a, b) => a.id.localeCompare(b.id));
   modelCache = { models, fetchedAt: Date.now() };
   // Several ids can share one canonical_slug (e.g. a model and its ":batch"
   // variant) — prefer the plain interactive id, since ":batch" models don't
   // return synchronous chat completions the way this app calls them.
   const slugMap = new Map<string, string>();
-  for (const m of json.data) {
+  for (const m of textModels) {
     if (!m.canonical_slug) continue;
     const existing = slugMap.get(m.canonical_slug);
     if (!existing || (existing.includes(":") && !m.id.includes(":"))) {
