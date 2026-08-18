@@ -77,7 +77,7 @@ export function ApiKeyModal() {
           href="https://openrouter.ai/keys"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-block text-[11px] text-accent hover:underline"
+          className="mt-2 inline-block text-[11px] text-accent-text hover:underline"
         >
           Get a key from openrouter.ai/keys →
         </a>

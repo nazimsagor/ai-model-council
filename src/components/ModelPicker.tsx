@@ -79,10 +79,10 @@ export function ModelPicker({
                     />
                     <span className="truncate">{model.name}</span>
                     {model.capabilities.vision && (
-                      <span className="rounded bg-info-soft px-1 text-[10px] text-info">vision</span>
+                      <span className="rounded border border-border px-1 text-[10px] text-muted">vision</span>
                     )}
                     {model.capabilities.reasoning && (
-                      <span className="rounded bg-warning-soft px-1 text-[10px] text-warning">reasoning</span>
+                      <span className="rounded border border-border px-1 text-[10px] text-muted">reasoning</span>
                     )}
                   </span>
                   <span className="shrink-0 font-mono text-[11px] text-muted-2">

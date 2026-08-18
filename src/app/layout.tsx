@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter, Geist_Mono } from "next/font/google";
+import { Instrument_Serif, Inter, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { TopBar } from "@/components/TopBar";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { AppSettingsProvider } from "@/lib/client/appSettings";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+// Editorial serif — used sparingly, only for large headline moments.
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
+  weight: "400",
+  style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
@@ -30,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bricolage.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${instrumentSerif.variable} ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <AppSettingsProvider>

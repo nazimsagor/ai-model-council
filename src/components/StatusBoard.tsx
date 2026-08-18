@@ -16,7 +16,7 @@ function StatusGlyph({ status }: { status: ModelRunStatus }) {
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "text-muted-2",
-  streaming: "text-accent",
+  streaming: "text-accent-text",
   complete: "text-success",
   failed: "text-danger",
   timeout: "text-danger",

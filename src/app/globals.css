@@ -1,58 +1,62 @@
 @import "tailwindcss";
 
+/* Dark is the default brand experience — black, ivory, electric orange. */
 :root {
-  --background: #fbf3ec;
-  --surface: #ffffff;
-  --surface-raised: #fffdf9;
-  --border: #ead9c8;
-  --border-strong: #dcc3ac;
-  --foreground: #3f1c13;
-  --muted: #6f5546;
-  --muted-2: #7e6350;
+  --background: #0a0a0a;
+  --surface: #171717;
+  --surface-raised: #1c1c1c;
+  --border: #292929;
+  --border-strong: #3d3d3d;
+  --foreground: #f5f1e8;
+  --muted: #a6a198;
+  --muted-2: #847e72;
 
-  --accent: #a83e17;
-  --accent-hover: #8f3413;
-  --accent-soft: #fbe4d6;
-  --on-accent: #ffffff;
+  --accent: #ff5a1f;
+  --accent-hover: #ff7a47;
+  --accent-text: #ff5a1f;
+  --accent-soft: #2a1710;
+  --on-accent: #0a0a0a;
 
-  --success: #1c6e47;
-  --success-soft: #e7f6ee;
-  --warning: #93630d;
-  --warning-soft: #fbf0dc;
-  --danger: #a5341f;
-  --danger-soft: #fbe7e1;
-  --info: #2e6699;
-  --info-soft: #e7f0f8;
+  --success: #d9ff66;
+  --success-soft: #1a2408;
+  --warning: #e8b339;
+  --warning-soft: #2a2008;
+  --danger: #eb5459;
+  --danger-soft: #2a1214;
+  --info: #7da6c9;
+  --info-soft: #12202a;
 
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-bricolage);
+  --font-heading: var(--font-serif);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+/* Light is an intentional separate system, not an inversion. */
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #1c1512;
-    --surface: #241b16;
-    --surface-raised: #2a201a;
-    --border: #3a2c22;
-    --border-strong: #4a392c;
-    --foreground: #f3e6da;
-    --muted: #b99d89;
-    --muted-2: #9c8576;
+    --background: #f4f0e8;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --border: #e3ddd0;
+    --border-strong: #d0c8b8;
+    --foreground: #111111;
+    --muted: #6b6558;
+    --muted-2: #736d5a;
 
-    --accent: #f0793e;
-    --accent-hover: #f5915f;
-    --accent-soft: #3a2416;
-    --on-accent: #1c1512;
+    --accent: #e94b16;
+    --accent-hover: #c93e10;
+    --accent-text: #b23a0d;
+    --accent-soft: #fbe4d6;
+    --on-accent: #0a0a0a;
 
-    --success: #4cbf87;
-    --success-soft: #16302344;
-    --warning: #e0ab4c;
-    --warning-soft: #3a2c0e;
-    --danger: #e0715a;
-    --danger-soft: #3a1c14;
-    --info: #6ba9d8;
-    --info-soft: #142a3a;
+    --success: #607000;
+    --success-soft: #eef2d6;
+    --warning: #92600a;
+    --warning-soft: #fbf0dc;
+    --danger: #b23a2e;
+    --danger-soft: #fbe7e1;
+    --info: #2e6699;
+    --info-soft: #e7f0f8;
   }
 }
 
@@ -67,6 +71,7 @@
   --color-muted-2: var(--muted-2);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
   --color-success: var(--success);
@@ -87,7 +92,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark light;
 }
 
 body {

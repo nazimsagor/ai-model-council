@@ -145,9 +145,9 @@ export function ModelExplorer() {
                 <td className="px-3 py-2 font-mono text-muted">{formatPrice(m.pricing.completion)}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
-                    {m.capabilities.vision && <Badge label="vision" color="info" />}
-                    {m.capabilities.tools && <Badge label="tools" color="success" />}
-                    {m.capabilities.reasoning && <Badge label="reasoning" color="warning" />}
+                    {m.capabilities.vision && <Badge label="vision" />}
+                    {m.capabilities.tools && <Badge label="tools" />}
+                    {m.capabilities.reasoning && <Badge label="reasoning" />}
                   </div>
                 </td>
               </tr>
@@ -167,7 +167,7 @@ function FilterToggle({ label, active, onClick }: { label: string; active: boole
     <button
       onClick={onClick}
       className={`rounded-md border px-2.5 py-1.5 text-[12px] ${
-        active ? "border-accent bg-accent-soft text-accent" : "border-border text-muted"
+        active ? "border-accent bg-accent-soft text-accent-text" : "border-border text-muted"
       }`}
     >
       {label}
@@ -175,12 +175,8 @@ function FilterToggle({ label, active, onClick }: { label: string; active: boole
   );
 }
 
-const BADGE_CLASSES: Record<"info" | "success" | "warning", string> = {
-  info: "bg-info-soft text-info",
-  success: "bg-success-soft text-success",
-  warning: "bg-warning-soft text-warning",
-};
-
-function Badge({ label, color }: { label: string; color: "info" | "success" | "warning" }) {
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] ${BADGE_CLASSES[color]}`}>{label}</span>;
+function Badge({ label }: { label: string }) {
+  return (
+    <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">{label}</span>
+  );
 }

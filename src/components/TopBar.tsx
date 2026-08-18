@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { RunListItem } from "@/lib/repository";
 import { useAppSettings } from "@/lib/client/appSettings";
 import { Icon, ICON_PATHS } from "@/components/icons";
+import { LogoMark } from "@/components/LogoMark";
 
 function MenuLink({
   href,
@@ -79,10 +80,8 @@ export function TopBar() {
           onClick={() => window.dispatchEvent(new Event("council:new"))}
           className="flex items-center gap-2"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-accent text-[11px] font-bold text-on-accent">
-            AI
-          </span>
-          <span className="font-heading text-[14px] font-bold tracking-tight">Model Council</span>
+          <LogoMark className="h-6 w-6 text-foreground" />
+          <span className="text-[14px] font-semibold tracking-tight">Model Council</span>
         </Link>
 
         <div className="relative" ref={menuRef}>
@@ -133,7 +132,7 @@ export function TopBar() {
                   <span className="flex items-center gap-1.5">
                     <Icon path={ICON_PATHS.history} className="h-3.5 w-3.5" /> Recent Work
                   </span>
-                  <Link href="/history" onClick={closeMenu} className="normal-case text-accent hover:underline">
+                  <Link href="/history" onClick={closeMenu} className="normal-case text-accent-text hover:underline">
                     View all
                   </Link>
                 </div>

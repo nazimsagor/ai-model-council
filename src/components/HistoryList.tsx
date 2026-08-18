@@ -36,7 +36,7 @@ export function HistoryList() {
       {runs?.length === 0 && (
         <p className="rounded-lg border border-border bg-surface px-4 py-8 text-center text-[13px] text-muted">
           No council runs yet. Ask something on the{" "}
-          <Link href="/" className="text-accent underline">
+          <Link href="/" className="text-accent-text underline">
             Council
           </Link>{" "}
           page to get started.

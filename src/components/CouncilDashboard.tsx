@@ -260,11 +260,11 @@ export function CouncilDashboard() {
     <div className="mx-auto max-w-[720px] px-4 py-10 sm:px-6">
       {!state && (
         <div className="mb-6 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-success">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" /> {pillLabel}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" /> {pillLabel}
           </span>
-          <h1 className="mt-4 font-heading text-[28px] font-bold tracking-tight sm:text-[32px]">
-            {copy.plain} <span className="text-accent">{copy.accent}</span>
+          <h1 className="mt-4 font-heading text-[34px] leading-[1.15] tracking-tight sm:text-[40px]">
+            {copy.plain} <span className="text-accent-text italic">{copy.accent}</span>
           </h1>
           <p className="mx-auto mt-2 max-w-md text-[13px] text-muted">{copy.sub}</p>
         </div>
@@ -324,7 +324,7 @@ export function CouncilDashboard() {
                         workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
                       }`}
               </span>
-              <span className="shrink-0 text-[11px] font-medium text-accent">Change</span>
+              <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
             </button>
 
             <button
@@ -368,7 +368,7 @@ export function CouncilDashboard() {
                       onClick={() => handleModeClick(m)}
                       className={`rounded-md border px-3 py-1.5 text-left text-[12px] transition-colors ${
                         mode === m.id
-                          ? "border-accent bg-accent-soft text-accent"
+                          ? "border-accent bg-accent-soft text-accent-text"
                           : "border-border text-muted hover:text-foreground"
                       }`}
                     >
@@ -399,7 +399,7 @@ export function CouncilDashboard() {
               )}
 
               {autoReason && !isAuto && (
-                <div className="rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-[12px] text-accent">
+                <div className="rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-[12px] text-accent-text">
                   <span className="font-semibold">AI Recommendation: </span>
                   {autoReason}
                 </div>
@@ -441,7 +441,7 @@ export function CouncilDashboard() {
                     onClick={() => setPromptMode(pm.id)}
                     className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${
                       promptMode === pm.id
-                        ? "border-accent bg-accent-soft text-accent"
+                        ? "border-accent bg-accent-soft text-accent-text"
                         : "border-border text-muted hover:text-foreground"
                     }`}
                   >
@@ -533,7 +533,7 @@ export function CouncilDashboard() {
                         setConfirmOverBudget(false);
                       }}
                       className={`rounded-md border px-2.5 py-1 text-[12px] ${
-                        budget === b ? "border-accent bg-accent-soft text-accent" : "border-border text-muted"
+                        budget === b ? "border-accent bg-accent-soft text-accent-text" : "border-border text-muted"
                       }`}
                     >
                       ${b}

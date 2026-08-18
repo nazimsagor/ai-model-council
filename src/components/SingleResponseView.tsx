@@ -27,7 +27,7 @@ export function SingleResponseView({ modelId, state }: { modelId: string; state:
         {state.status === "failed" || state.status === "timeout" ? (
           <p className="text-danger">{state.error ?? "This model failed to respond."}</p>
         ) : state.content ? (
-          <div className="prose max-w-none [&_a]:text-accent [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-3">
+          <div className="prose max-w-none [&_a]:text-accent-text [&_code]:rounded [&_code]:bg-accent-soft [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-accent-soft [&_pre]:p-3">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{state.content}</ReactMarkdown>
           </div>
         ) : (
