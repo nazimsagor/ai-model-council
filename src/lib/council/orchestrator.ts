@@ -19,7 +19,12 @@ export interface RunCouncilConfig {
   modelTimeoutMs?: number;
 }
 
-const DEFAULT_MODEL_TIMEOUT_MS = 45_000;
+const DEFAULT_MODEL_TIMEOUT_MS = 75_000;
+// Reasoning-capable models can spend their entire token budget on internal
+// "thinking" and never emit visible content if maxTokens is small — they
+// still get billed for those tokens, so the user pays for nothing. Give
+// them enough headroom to actually finish reasoning and still answer.
+const MIN_MAX_TOKENS_FOR_REASONING_MODELS = 3000;
 
 async function runOneModel(
   apiKey: string,
@@ -36,11 +41,14 @@ async function runOneModel(
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
+  const effectiveMaxTokens = model?.capabilities.reasoning
+    ? Math.max(opts.maxTokens, MIN_MAX_TOKENS_FOR_REASONING_MODELS)
+    : opts.maxTokens;
 
   try {
     const { content, promptTokens, completionTokens } = await streamChatCompletion(apiKey, modelId, messages, {
       temperature: opts.temperature,
-      maxTokens: opts.maxTokens,
+      maxTokens: effectiveMaxTokens,
       signal: controller.signal,
       webSearch: opts.webSearch,
       onDelta: (text) => emit({ type: "delta", modelId, text }),
@@ -51,14 +59,15 @@ async function runOneModel(
     const result: ModelRunResult = {
       modelId,
       provider,
-      status: "complete",
+      status: content.trim() ? "complete" : "failed",
       content,
+      error: content.trim() ? undefined : "The model used its entire token budget on internal reasoning and never produced a visible answer.",
       promptTokens,
       completionTokens,
       cost,
       latencyMs: Date.now() - startedAt,
     };
-    emit({ type: "status", modelId, status: "complete" });
+    emit({ type: "status", modelId, status: result.status });
     emit({ type: "model_complete", result });
     return result;
   } catch (err) {
