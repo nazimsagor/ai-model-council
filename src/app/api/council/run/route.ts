@@ -5,7 +5,7 @@ import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect"
 import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
 import { createRun } from "@/lib/repository";
-import { requireUserId } from "@/lib/session";
+import { getVisitorId } from "@/lib/session";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -32,12 +32,7 @@ function sseFormat(event: SSEEvent): string {
 }
 
 export async function POST(req: NextRequest) {
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return new Response(JSON.stringify({ error: "Sign in to run a council." }), { status: 401 });
-  }
+  const visitorId = await getVisitorId();
 
   const apiKey = req.headers.get("x-openrouter-key")?.trim();
   if (!apiKey) {
@@ -101,7 +96,7 @@ export async function POST(req: NextRequest) {
   }
 
   const runId = await createRun({
-    userId,
+    visitorId,
     prompt: body.prompt,
     systemPrompt,
     workflow,

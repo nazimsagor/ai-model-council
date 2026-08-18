@@ -32,15 +32,7 @@ function NavLink({
   );
 }
 
-export function Sidebar({
-  userEmail,
-  userName,
-  onSignOut,
-}: {
-  userEmail: string | null;
-  userName: string | null;
-  onSignOut: () => void | Promise<void>;
-}) {
+export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const workflow = searchParams.get("workflow");
@@ -49,15 +41,11 @@ export function Sidebar({
   const [recent, setRecent] = useState<RunListItem[] | null>(null);
 
   useEffect(() => {
-    if (!userEmail) {
-      const timer = setTimeout(() => setRecent([]), 0);
-      return () => clearTimeout(timer);
-    }
     fetch("/api/history")
       .then((r) => r.json())
       .then((json) => setRecent((json.runs ?? []).slice(0, 5)))
       .catch(() => setRecent([]));
-  }, [pathname, userEmail]);
+  }, [pathname]);
 
   const onHome = pathname === "/";
 
@@ -135,9 +123,7 @@ export function Sidebar({
 
         {recent?.length === 0 && (
           <div className="rounded-lg border border-dashed border-border-strong px-2.5 py-3 text-center">
-            <p className="text-[11px] text-muted">
-              {userEmail ? "Your work will appear here." : "Sign in to see your recent work."}
-            </p>
+            <p className="text-[11px] text-muted">Your work will appear here.</p>
           </div>
         )}
 
@@ -165,35 +151,6 @@ export function Sidebar({
         </span>
         <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
       </button>
-
-      <div className="border-t border-border pt-3">
-        {userEmail ? (
-          <div className="flex items-center justify-between gap-2 text-[12px]">
-            <span className="flex min-w-0 items-center gap-1.5 text-muted" title={userEmail}>
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold uppercase text-accent-text">
-                {(userName ?? userEmail).slice(0, 1)}
-              </span>
-              <span className="truncate">{userName ?? userEmail}</span>
-            </span>
-            <form action={onSignOut}>
-              <button
-                type="submit"
-                title="Sign out"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-background hover:text-foreground"
-              >
-                <Icon path={ICON_PATHS.logout} className="h-3.5 w-3.5" />
-              </button>
-            </form>
-          </div>
-        ) : (
-          <Link
-            href={`/login?next=${encodeURIComponent(pathname)}`}
-            className="flex items-center justify-center rounded-lg bg-accent px-2.5 py-2 text-[12px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-          >
-            Sign in
-          </Link>
-        )}
-      </div>
     </aside>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useModels } from "@/lib/client/useModels";
 import { useCouncilRun } from "@/lib/client/useCouncilRun";
 import { useAppSettings } from "@/lib/client/appSettings";
@@ -65,13 +65,12 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
   },
 };
 
-export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
+export function CouncilDashboard() {
   const { models, error: modelsError } = useModels();
   const { state, run, clear } = useCouncilRun();
   const { freeModelsOnly, apiKey, hasApiKey, openKeyModal, defaultModelId, setDefaultModelId } = useAppSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
 
   const workflow: Workflow = (searchParams.get("workflow") as Workflow | null) ?? "chat";
 
@@ -218,17 +217,9 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
     autoSelect(m.count);
   }
 
-  function goToLogin() {
-    router.push(`/login?next=${encodeURIComponent(pathname)}`);
-  }
-
   async function handleRun() {
     if (!prompt.trim() || isRunning) return;
     if (!isAuto && selectedIds.size === 0) return;
-    if (!hasSession) {
-      goToLogin();
-      return;
-    }
     if (!hasApiKey) {
       openKeyModal();
       return;
@@ -376,13 +367,11 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
             </button>
 
             <button
-              onClick={!hasSession ? goToLogin : hasApiKey ? handleRun : openKeyModal}
-              disabled={hasSession && hasApiKey && (!prompt.trim() || isRunning || (!isAuto && selectedIds.size === 0))}
+              onClick={hasApiKey ? handleRun : openKeyModal}
+              disabled={hasApiKey && (!prompt.trim() || isRunning || (!isAuto && selectedIds.size === 0))}
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
             >
-              {!hasSession ? (
-                "Sign in to chat"
-              ) : hasApiKey ? (
+              {hasApiKey ? (
                 <>
                   {workflow === "compare" ? "Compare" : workflow === "council" ? "Run Council" : "Ask"}
                   <Icon path={ICON_PATHS.arrowUp} className="h-3.5 w-3.5" />

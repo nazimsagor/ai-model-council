@@ -10,10 +10,10 @@ import type {
   EvaluationScores,
 } from "../types";
 
-export async function createBenchmark(userId: string, name: string, questionPrompts: string[]): Promise<string> {
+export async function createBenchmark(visitorId: string, name: string, questionPrompts: string[]): Promise<string> {
   const { data: benchmark, error } = await supabase
     .from("benchmarks")
-    .insert({ user_id: userId, name })
+    .insert({ visitor_id: visitorId, name })
     .select("id")
     .single();
   if (error) throw new Error(`Failed to create benchmark: ${error.message}`);
@@ -29,8 +29,8 @@ export async function createBenchmark(userId: string, name: string, questionProm
   return benchmark.id as string;
 }
 
-export async function deleteBenchmark(benchmarkId: string, userId: string) {
-  const { error } = await supabase.from("benchmarks").delete().eq("id", benchmarkId).eq("user_id", userId);
+export async function deleteBenchmark(benchmarkId: string, visitorId: string) {
+  const { error } = await supabase.from("benchmarks").delete().eq("id", benchmarkId).eq("visitor_id", visitorId);
   if (error) throw new Error(`Failed to delete benchmark: ${error.message}`);
 }
 
@@ -40,11 +40,11 @@ interface BenchmarkRow {
   created_at: string;
 }
 
-export async function listBenchmarks(userId: string): Promise<BenchmarkSummary[]> {
+export async function listBenchmarks(visitorId: string): Promise<BenchmarkSummary[]> {
   const { data: benchmarks, error } = await supabase
     .from("benchmarks")
     .select("id, name, created_at")
-    .eq("user_id", userId)
+    .eq("visitor_id", visitorId)
     .order("created_at", { ascending: false })
     .returns<BenchmarkRow[]>();
   if (error) throw new Error(`Failed to list benchmarks: ${error.message}`);
@@ -132,12 +132,12 @@ function buildAggregates(modelIds: string[], results: ResultRow[]): BenchmarkMod
   });
 }
 
-export async function getBenchmark(benchmarkId: string, userId: string): Promise<Benchmark | null> {
+export async function getBenchmark(benchmarkId: string, visitorId: string): Promise<Benchmark | null> {
   const { data: benchmark, error } = await supabase
     .from("benchmarks")
     .select("id, name, created_at")
     .eq("id", benchmarkId)
-    .eq("user_id", userId)
+    .eq("visitor_id", visitorId)
     .maybeSingle<BenchmarkRow>();
   if (error) throw new Error(`Failed to load benchmark: ${error.message}`);
   if (!benchmark) return null;
@@ -219,10 +219,10 @@ export async function getBenchmark(benchmarkId: string, userId: string): Promise
   };
 }
 
-export async function createBenchmarkRun(benchmarkId: string, userId: string, modelIds: string[]): Promise<string> {
+export async function createBenchmarkRun(benchmarkId: string, visitorId: string, modelIds: string[]): Promise<string> {
   const { data, error } = await supabase
     .from("benchmark_runs")
-    .insert({ benchmark_id: benchmarkId, user_id: userId, model_ids: modelIds, status: "running" })
+    .insert({ benchmark_id: benchmarkId, visitor_id: visitorId, model_ids: modelIds, status: "running" })
     .select("id")
     .single();
   if (error) throw new Error(`Failed to create benchmark run: ${error.message}`);

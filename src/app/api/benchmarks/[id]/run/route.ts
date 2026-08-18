@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBenchmarkRun, getBenchmark } from "@/lib/benchmarks/repository";
 import { executeBenchmarkRun } from "@/lib/benchmarks/run";
-import { requireUserId } from "@/lib/session";
+import { getVisitorId } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -12,12 +12,7 @@ interface RunBody {
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  }
+  const visitorId = await getVisitorId();
 
   const apiKey = req.headers.get("x-openrouter-key")?.trim();
   if (!apiKey) {
@@ -33,15 +28,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Choose 7 models or fewer per run." }, { status: 400 });
   }
 
-  const benchmark = await getBenchmark(id, userId);
+  const benchmark = await getBenchmark(id, visitorId);
   if (!benchmark) return NextResponse.json({ error: "Benchmark not found" }, { status: 404 });
   if (benchmark.questions.length === 0) {
     return NextResponse.json({ error: "This benchmark has no questions yet." }, { status: 400 });
   }
 
-  const runId = await createBenchmarkRun(id, userId, modelIds);
+  const runId = await createBenchmarkRun(id, visitorId, modelIds);
   await executeBenchmarkRun(runId, apiKey, benchmark.questions, modelIds);
 
-  const updated = await getBenchmark(id, userId);
+  const updated = await getBenchmark(id, visitorId);
   return NextResponse.json({ benchmark: updated });
 }

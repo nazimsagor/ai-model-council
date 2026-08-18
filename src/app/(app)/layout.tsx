@@ -1,16 +1,11 @@
 import { Suspense } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { getCurrentUser } from "@/lib/supabase/authServer";
-import { signOutAction } from "@/app/login/actions";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;
-
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full">
       <Suspense fallback={<div className="w-60 shrink-0 border-r border-border bg-surface" />}>
-        <Sidebar userEmail={user?.email ?? null} userName={fullName} onSignOut={signOutAction} />
+        <Sidebar />
       </Suspense>
       <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
     </div>
