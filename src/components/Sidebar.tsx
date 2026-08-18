@@ -70,9 +70,7 @@ export function Sidebar() {
         <NavLink href="/?workflow=chat" active={onHome && workflow === "chat"} icon="chat" label="Chat" />
         <NavLink href="/?workflow=compare" active={onHome && workflow === "compare"} icon="compare" label="Compare" />
         <NavLink href="/?workflow=council" active={onHome && workflow === "council"} icon="council" label="Council" />
-        <NavLink href="/?workflow=auto" active={onHome && workflow === "auto"} icon="auto" label="Auto-route" />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
-        <NavLink href="/benchmarks" active={pathname.startsWith("/benchmarks")} icon="trophy" label="Benchmarks" />
       </nav>
 
       <label

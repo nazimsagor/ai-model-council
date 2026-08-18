@@ -5,7 +5,7 @@ const COOKIE_NAME = "council_visitor_id";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 /** Anonymous per-browser session id — no login required. Used only to keep
- *  each visitor's history/benchmarks private to them.
+ *  each visitor's history private to them.
  *
  *  Reading a cookie is always allowed; writing one is only allowed from a
  *  Route Handler or Server Action, not a plain Server Component render. A

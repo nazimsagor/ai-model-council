@@ -21,7 +21,6 @@ const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof
   { id: "chat", label: "Chat", desc: "One model, one focused answer", icon: "chat" },
   { id: "compare", label: "Compare", desc: "Independent answers, side by side", icon: "compare" },
   { id: "council", label: "Council", desc: "Independent perspectives, one verdict", icon: "council" },
-  { id: "auto", label: "Auto-route", desc: "The council picks the best model", icon: "auto" },
 ];
 
 const MODES: { id: string; label: string; count: number; hint: string }[] = [
@@ -58,11 +57,6 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
     accent: "One verdict wins.",
     sub: "Independent perspectives, blind judging across ten dimensions, and one synthesized final answer.",
   },
-  auto: {
-    plain: "Just ask.",
-    accent: "We'll pick the best model.",
-    sub: "The council reads your prompt and routes it straight to the single best-fit model.",
-  },
 };
 
 export function CouncilDashboard() {
@@ -79,7 +73,6 @@ export function CouncilDashboard() {
   }
 
   const isMultiModel = workflow === "compare" || workflow === "council";
-  const isAuto = workflow === "auto";
 
   const [prompt, setPrompt] = useState("");
   const [web, setWeb] = useState(false);
@@ -209,7 +202,6 @@ export function CouncilDashboard() {
   // Auto-populate a default selection once models are loaded AND a prompt is typed,
   // whichever settles last — if the user hasn't manually picked anything yet.
   useEffect(() => {
-    if (isAuto) return;
     if (modelPicked.current || selectedIds.size > 0) return;
     if (availableModels.length === 0 || !prompt.trim()) return;
     const timer = setTimeout(() => {
@@ -223,7 +215,7 @@ export function CouncilDashboard() {
   // Debounced cost estimate.
   useEffect(() => {
     const timer = setTimeout(() => {
-      const ids = isAuto ? [] : Array.from(selectedIds);
+      const ids = Array.from(selectedIds);
       if (ids.length === 0) {
         setEstimate(null);
         return;
@@ -240,7 +232,7 @@ export function CouncilDashboard() {
         .catch(() => {});
     }, 350);
     return () => clearTimeout(timer);
-  }, [selectedIds, maxTokens, judgeCount, workflow, isAuto]);
+  }, [selectedIds, maxTokens, judgeCount, workflow]);
 
   const effectiveBudget = budget ?? (customBudget ? Number(customBudget) : null);
   const overBudget =
@@ -267,7 +259,7 @@ export function CouncilDashboard() {
 
   async function handleRun() {
     if (!prompt.trim() || isRunning) return;
-    if (!isAuto && selectedIds.size === 0) return;
+    if (selectedIds.size === 0) return;
     if (!hasApiKey) {
       openKeyModal();
       return;
@@ -284,8 +276,7 @@ export function CouncilDashboard() {
         promptMode,
         workflow,
         mode,
-        selectedModelIds: isAuto ? [] : Array.from(selectedIds),
-        autoSelect: isAuto,
+        selectedModelIds: Array.from(selectedIds),
         freeModelsOnly,
         judgeCount: workflow === "council" ? judgeCount : 0,
         judgeModelId: workflow === "council" ? (judgeModelId ?? undefined) : undefined,
@@ -344,7 +335,6 @@ export function CouncilDashboard() {
   }
 
   const pillLabel = (() => {
-    if (workflow === "auto") return "Auto-route · picks 1 model for you";
     if (workflow === "chat") return selectedModelName ? `Chat · ${selectedModelName}` : "Chat · pick a model below";
     if (workflow === "compare") return `Compare · ${selectedIds.size || "—"} model${selectedIds.size === 1 ? "" : "s"}`;
     return `Council · ${selectedIds.size || "—"} model${selectedIds.size === 1 ? "" : "s"} + ${judgeCount} judge${judgeCount === 1 ? "" : "s"}`;
@@ -449,13 +439,11 @@ export function CouncilDashboard() {
                 {isMultiModel ? "Running with" : "Answering with"}
               </span>
               <span className="truncate font-medium text-foreground">
-                {workflow === "auto"
-                  ? "The council will pick for you"
-                  : workflow === "chat"
-                    ? (selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet"))
-                    : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"}${
-                        workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
-                      }`}
+                {workflow === "chat"
+                  ? (selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet"))
+                  : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"}${
+                      workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
+                    }`}
               </span>
               <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
             </button>
@@ -477,7 +465,7 @@ export function CouncilDashboard() {
 
             <button
               onClick={hasApiKey ? handleRun : openKeyModal}
-              disabled={hasApiKey && (!prompt.trim() || isRunning || (!isAuto && selectedIds.size === 0))}
+              disabled={hasApiKey && (!prompt.trim() || isRunning || selectedIds.size === 0)}
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
             >
               {hasApiKey ? (
@@ -508,8 +496,7 @@ export function CouncilDashboard() {
 
           {showAdvanced && (
             <div className="space-y-4 border-t border-border px-4 py-4">
-              {!isAuto && (
-                <div className="rounded-lg border border-border bg-background p-3">
+              <div className="rounded-lg border border-border bg-background p-3">
                   <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-2">
                     {workflow === "chat" ? "Chat Model" : `${activeWorkflowMeta.label} Models`}
                   </div>
@@ -596,7 +583,6 @@ export function CouncilDashboard() {
                     </div>
                   )}
                 </div>
-              )}
 
               {isMultiModel && (
                 <div className="flex flex-wrap items-center gap-2">
@@ -636,18 +622,11 @@ export function CouncilDashboard() {
                 </button>
               )}
 
-              {autoReason && !isAuto && (
+              {autoReason && (
                 <div className="rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-[12px] text-accent-text">
                   <span className="font-semibold">AI Recommendation: </span>
                   {autoReason}
                 </div>
-              )}
-
-              {isAuto && (
-                <p className="rounded-md border border-border bg-background px-3 py-2 text-[12px] text-muted">
-                  Auto-route classifies your prompt and picks the single best-fit model — no manual
-                  selection needed.
-                </p>
               )}
 
               <div className="flex flex-wrap items-center gap-2">

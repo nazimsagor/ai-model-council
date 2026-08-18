@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const workflow: Workflow = body.workflow ?? "council";
   const evaluate = workflow === "council";
-  const isSingleModelWorkflow = workflow === "chat" || workflow === "auto";
+  const isSingleModelWorkflow = workflow === "chat";
 
   let catalog = await listModels();
   if (body.freeModelsOnly) {
@@ -64,8 +64,8 @@ export async function POST(req: NextRequest) {
   const desiredCount = isSingleModelWorkflow ? 1 : (COUNCIL_MODE_COUNTS[mode] ?? 8);
 
   let selectedModelIds = body.selectedModelIds ?? [];
-  // Auto-route always lets the system choose; other workflows auto-select only as a fallback.
-  if (workflow === "auto" || body.autoSelect || selectedModelIds.length === 0) {
+  // Auto-select as a fallback when the client didn't pick anything itself.
+  if (body.autoSelect || selectedModelIds.length === 0) {
     const auto = autoSelectModels(body.prompt, catalog, desiredCount);
     selectedModelIds = auto.modelIds;
   }
