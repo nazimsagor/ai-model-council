@@ -30,6 +30,7 @@ export interface RunCouncilRequest {
   temperature?: number;
   maxTokens?: number;
   maxBudget?: number;
+  webSearch?: boolean;
 }
 
 export function useCouncilRun() {

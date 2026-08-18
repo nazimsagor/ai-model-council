@@ -24,6 +24,7 @@ interface RunRequestBody {
   temperature?: number;
   maxTokens?: number;
   maxBudget?: number;
+  webSearch?: boolean;
 }
 
 function sseFormat(event: SSEEvent): string {
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
             selectedModelIds,
             judgeModelIds,
             evaluate,
+            webSearch: body.webSearch,
           },
           catalog,
           emit

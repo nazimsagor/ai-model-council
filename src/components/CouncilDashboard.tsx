@@ -82,6 +82,7 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
   const isAuto = workflow === "auto";
 
   const [prompt, setPrompt] = useState("");
+  const [web, setWeb] = useState(false);
   const [mode, setMode] = useState("balanced");
   const [promptMode, setPromptMode] = useState<PromptMode>("standard");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -251,6 +252,7 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
         temperature,
         maxTokens,
         maxBudget: effectiveBudget ?? undefined,
+        webSearch: web,
       },
       apiKey
     );
@@ -355,6 +357,21 @@ export function CouncilDashboard({ hasSession }: { hasSession: boolean }) {
                       }`}
               </span>
               <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setWeb((v) => !v)}
+              title="Ground answers with live web search results (adds a small per-search cost)"
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                web ? "border-accent bg-accent-soft text-accent-text" : "border-border text-muted hover:text-foreground"
+              }`}
+            >
+              <Icon path={ICON_PATHS.globe} className="h-3.5 w-3.5" />
+              Web
+              <span className={`ml-0.5 text-[10px] uppercase ${web ? "text-accent-text" : "text-muted-2"}`}>
+                {web ? "On" : "Off"}
+              </span>
             </button>
 
             <button

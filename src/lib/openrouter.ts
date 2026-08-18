@@ -102,7 +102,7 @@ export async function chatCompletion(
   apiKey: string,
   modelId: string,
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number; signal?: AbortSignal } = {}
+  opts: { temperature?: number; maxTokens?: number; signal?: AbortSignal; webSearch?: boolean } = {}
 ): Promise<CompletionResult> {
   if (!apiKey) throw new MissingApiKeyError();
   const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
@@ -114,6 +114,7 @@ export async function chatCompletion(
       messages,
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 1024,
+      ...(opts.webSearch ? { plugins: [{ id: "web" }] } : {}),
     }),
   });
   if (!res.ok) {
@@ -138,6 +139,7 @@ export async function streamChatCompletion(
     temperature?: number;
     maxTokens?: number;
     signal?: AbortSignal;
+    webSearch?: boolean;
     onDelta: (text: string) => void;
   }
 ): Promise<CompletionResult> {
@@ -152,6 +154,7 @@ export async function streamChatCompletion(
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 1024,
       stream: true,
+      ...(opts.webSearch ? { plugins: [{ id: "web" }] } : {}),
     }),
   });
 

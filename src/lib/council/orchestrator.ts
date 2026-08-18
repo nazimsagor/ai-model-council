@@ -15,6 +15,7 @@ export interface RunCouncilConfig {
   selectedModelIds: string[];
   judgeModelIds: string[];
   evaluate: boolean;
+  webSearch?: boolean;
   modelTimeoutMs?: number;
 }
 
@@ -25,7 +26,7 @@ async function runOneModel(
   modelId: string,
   catalog: Map<string, OpenRouterModel>,
   messages: ChatMessage[],
-  opts: { temperature: number; maxTokens: number; timeoutMs: number },
+  opts: { temperature: number; maxTokens: number; timeoutMs: number; webSearch?: boolean },
   emit: (e: SSEEvent) => void
 ): Promise<ModelRunResult> {
   const model = catalog.get(modelId);
@@ -41,6 +42,7 @@ async function runOneModel(
       temperature: opts.temperature,
       maxTokens: opts.maxTokens,
       signal: controller.signal,
+      webSearch: opts.webSearch,
       onDelta: (text) => emit({ type: "delta", modelId, text }),
     });
     clearTimeout(timer);
@@ -103,6 +105,7 @@ export async function runCouncil(
             temperature: config.temperature,
             maxTokens: config.maxTokens,
             timeoutMs: config.modelTimeoutMs ?? DEFAULT_MODEL_TIMEOUT_MS,
+            webSearch: config.webSearch,
           },
           emit
         )
