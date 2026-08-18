@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
-
+/** Browsing is public — Chat/Compare/Council/Auto-route, Models, and
+ *  Benchmarks all render without an account. Only actions that need to
+ *  persist data (running a workflow, saving a benchmark, viewing your own
+ *  history) require sign-in, enforced where that action happens rather
+ *  than as a blanket site-wide gate. The only thing this proxy still does
+ *  is bounce an already-signed-in visitor away from /login. */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -27,19 +31,10 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
-
-  if (!user && !isPublic) {
+  if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
-  }
-
-  if (user && path === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
+    const next = request.nextUrl.searchParams.get("next");
+    url.pathname = next && next.startsWith("/") ? next : "/";
     url.search = "";
     return NextResponse.redirect(url);
   }
@@ -48,7 +43,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // API routes enforce their own auth (returning JSON 401s) — redirecting
-  // them to an HTML login page would break every fetch()/.json() call.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.png|icon).*)"],
+  matcher: ["/login"],
 };

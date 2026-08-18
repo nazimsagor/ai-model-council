@@ -5,11 +5,12 @@ import { signOutAction } from "@/app/login/actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;
 
   return (
     <div className="flex h-full">
       <Suspense fallback={<div className="w-60 shrink-0 border-r border-border bg-surface" />}>
-        <Sidebar userEmail={user?.email ?? null} onSignOut={signOutAction} />
+        <Sidebar userEmail={user?.email ?? null} userName={fullName} onSignOut={signOutAction} />
       </Suspense>
       <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
     </div>

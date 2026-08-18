@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { CouncilDashboard } from "@/components/CouncilDashboard";
+import { getCurrentUserId } from "@/lib/supabase/authServer";
 
-export default function Home() {
+export default async function Home() {
+  const userId = await getCurrentUserId();
   return (
     <Suspense fallback={null}>
-      <CouncilDashboard />
+      <CouncilDashboard hasSession={Boolean(userId)} />
     </Suspense>
   );
 }
