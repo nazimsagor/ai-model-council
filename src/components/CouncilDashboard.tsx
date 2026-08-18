@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useModels } from "@/lib/client/useModels";
 import { useCouncilRun } from "@/lib/client/useCouncilRun";
 import { useAppSettings } from "@/lib/client/appSettings";
-import { ModelPicker } from "@/components/ModelPicker";
+import { ModelPickerModal } from "@/components/ModelPickerModal";
 import { StatusBoard } from "@/components/StatusBoard";
 import { ResponseCard } from "@/components/ResponseCard";
 import { SingleResponseView } from "@/components/SingleResponseView";
@@ -65,7 +65,7 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
 };
 
 export function CouncilDashboard() {
-  const { models, loading: modelsLoading, error: modelsError } = useModels();
+  const { models, error: modelsError } = useModels();
   const { state, run, clear } = useCouncilRun();
   const { freeModelsOnly, apiKey, hasApiKey, openKeyModal } = useAppSettings();
   const router = useRouter();
@@ -88,6 +88,7 @@ export function CouncilDashboard() {
   const [autoBusy, setAutoBusy] = useState(false);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
   const [judgeCount, setJudgeCount] = useState(1);
@@ -250,10 +251,8 @@ export function CouncilDashboard() {
   }, [selectedIds, models]);
   const selectedModelName = selectedModel?.name ?? (selectedIds.size > 0 ? Array.from(selectedIds)[0] : null);
 
-  const modelPickerRef = useRef<HTMLDivElement>(null);
-  function scrollToPicker() {
-    setShowAdvanced(true);
-    setTimeout(() => modelPickerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  function openPicker() {
+    setPickerOpen(true);
   }
 
   const pillLabel = (() => {
@@ -315,7 +314,7 @@ export function CouncilDashboard() {
 
           <div className="flex items-center justify-between gap-2 rounded-lg border-t border-border px-1 pt-2" title="Enter to send · Shift + Enter for a new line">
             <button
-              onClick={scrollToPicker}
+              onClick={openPicker}
               className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[12px] text-muted transition-colors hover:text-foreground"
             >
               <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
@@ -401,7 +400,7 @@ export function CouncilDashboard() {
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
-                        <button onClick={scrollToPicker} className="text-[12px] font-medium text-accent-text hover:underline">
+                        <button onClick={openPicker} className="text-[12px] font-medium text-accent-text hover:underline">
                           Change
                         </button>
                         {selectedModelName && (
@@ -423,7 +422,7 @@ export function CouncilDashboard() {
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
-                        <button onClick={scrollToPicker} className="text-[12px] font-medium text-accent-text hover:underline">
+                        <button onClick={openPicker} className="text-[12px] font-medium text-accent-text hover:underline">
                           Change
                         </button>
                         {selectedIds.size > 0 && (
@@ -487,28 +486,6 @@ export function CouncilDashboard() {
                   Auto-route classifies your prompt and picks the single best-fit model — no manual
                   selection needed.
                 </p>
-              )}
-
-              {!isAuto && (
-                <div ref={modelPickerRef}>
-                  <div className="mb-1.5 flex items-center justify-between text-[12px] text-muted">
-                    <span>Manual selection</span>
-                    <span>{selectedIds.size} selected</span>
-                  </div>
-                  {modelsLoading ? (
-                    <div className="rounded-lg border border-border bg-surface px-3 py-6 text-center text-[13px] text-muted">
-                      Loading OpenRouter catalog…
-                    </div>
-                  ) : (
-                    <ModelPicker
-                      models={availableModels}
-                      selected={selectedIds}
-                      onToggle={toggleModel}
-                      singleSelect={workflow === "chat"}
-                      maxVisibleHeight="16rem"
-                    />
-                  )}
-                </div>
               )}
 
               <div className="flex flex-wrap items-center gap-2">
@@ -735,6 +712,17 @@ export function CouncilDashboard() {
           )}
         </div>
       )}
+
+      <ModelPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={`Choose your ${activeWorkflowMeta.label.toLowerCase()} model${isMultiModel ? "s" : ""}`}
+        subtitle={workflow === "chat" ? "One model per chat" : workflow === "council" ? "Independent perspectives" : "Side-by-side answers"}
+        models={availableModels}
+        selected={selectedIds}
+        onToggle={toggleModel}
+        singleSelect={workflow === "chat"}
+      />
     </div>
   );
 }
