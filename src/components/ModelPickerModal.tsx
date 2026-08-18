@@ -26,20 +26,21 @@ const MAJOR_PROVIDER_ORDER = [
   "deepseek", "qwen", "amazon", "microsoft", "cohere", "perplexity", "nvidia",
 ];
 
-const FLAGSHIP_HINTS = [
-  "gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4",
-  "claude-3.7-sonnet", "claude-sonnet-4", "claude-opus-4", "claude-3.5-sonnet",
-  "gemini-2.0", "gemini-2.5", "gemini-1.5-pro",
-  "deepseek-r1", "deepseek-v3", "llama-3.3", "llama-4",
-  "qwen2.5", "qwen3", "grok-2", "grok-3", "grok-4",
-];
-
+/** Ranks models by real capability + price signals from the live catalog —
+ *  no hardcoded model names, so this never goes stale as new versions ship
+ *  (a substring list like "gpt-5"/"gemini-2.5" inevitably misses whatever
+ *  ships next, e.g. a future "gemini-3.x"). Price is a meaningful signal
+ *  here because within one family the pricier tier is consistently the more
+ *  capable one (Opus > Sonnet > Haiku, Pro > Flash). ":batch" variants are
+ *  async-only and not useful for interactive picking, so they're pushed
+ *  below their equivalent interactive model despite being cheaper. */
 function overallScore(m: OpenRouterModel): number {
-  const idLower = m.id.toLowerCase();
-  let score = FLAGSHIP_HINTS.some((h) => idLower.includes(h)) ? 5 : 0;
-  score += m.capabilities.reasoning ? 1 : 0;
+  let score = 0;
+  score += m.capabilities.reasoning ? 3 : 0;
   score += m.capabilities.tools ? 1 : 0;
-  score += Math.min(m.contextLength / 200_000, 1);
+  score += Math.min(m.contextLength / 500_000, 2);
+  score += Math.min((m.pricing.completion * 1_000_000) / 50, 2);
+  if (m.id.includes(":batch")) score -= 5;
   return score;
 }
 
