@@ -19,7 +19,7 @@ export interface RunCouncilConfig {
   modelTimeoutMs?: number;
 }
 
-const DEFAULT_MODEL_TIMEOUT_MS = 75_000;
+const DEFAULT_MODEL_TIMEOUT_MS = 110_000;
 // Reasoning-capable models can spend their entire token budget on internal
 // "thinking" and never emit visible content if maxTokens is small — they
 // still get billed for those tokens, so the user pays for nothing. Give

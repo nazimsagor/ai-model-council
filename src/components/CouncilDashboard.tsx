@@ -818,7 +818,7 @@ export function CouncilDashboard() {
           {state.order.length === 1 ? (
             <SingleResponseView modelId={state.order[0]} state={state.modelStates[state.order[0]]} />
           ) : (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {sortedForDisplay.map((id, i) => {
                 const evalData = state.evaluations.find((e) => e.modelId === id);
                 return (

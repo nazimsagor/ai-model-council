@@ -9,6 +9,7 @@ import { getVisitorId } from "@/lib/session";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 interface RunRequestBody {
   prompt: string;
