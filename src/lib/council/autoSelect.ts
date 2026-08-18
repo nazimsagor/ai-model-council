@@ -183,11 +183,25 @@ function capabilityScore(model: OpenRouterModel): number {
   );
 }
 
+// Excluded from auto-pick despite scoring well on paper: openai/gpt-5.4-pro
+// was observed via production logs to consistently time out (zero streamed
+// output for 40s+, across three separate timeout configurations tried this
+// session) — a real reliability issue on OpenRouter right now, not a bug in
+// our request handling. gpt-5.5-pro ties it exactly on capabilityScore (same
+// $180/M "Pro" tier), so excluding only gpt-5.4-pro would just swap in its
+// untested twin in the same risk category — both are excluded together so
+// the pick actually lands on a different, non-"Pro" tier. Revisit if the
+// underlying reliability issue changes.
+const UNRELIABLE_MODEL_IDS = new Set(["openai/gpt-5.4-pro", "openai/gpt-5.5-pro"]);
+
 /** The best current interactive model for one provider, by real capability
  *  signals (reasoning/tools/context) — never a hardcoded model id, so a
- *  provider's pick automatically follows whatever they currently ship. */
+ *  provider's pick automatically follows whatever they currently ship
+ *  (aside from UNRELIABLE_MODEL_IDS, an explicit reliability override). */
 function bestModelForProvider(provider: string, catalog: OpenRouterModel[]): string | null {
-  const candidates = catalog.filter((m) => m.provider === provider && !m.id.includes(":batch"));
+  const candidates = catalog.filter(
+    (m) => m.provider === provider && !m.id.includes(":batch") && !UNRELIABLE_MODEL_IDS.has(m.id)
+  );
   if (candidates.length === 0) return null;
   return candidates.sort((a, b) => capabilityScore(b) - capabilityScore(a))[0].id;
 }
