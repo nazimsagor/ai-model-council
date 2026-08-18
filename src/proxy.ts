@@ -5,8 +5,14 @@ import { NextResponse, type NextRequest } from "next/server";
  *  Benchmarks all render without an account. Only actions that need to
  *  persist data (running a workflow, saving a benchmark, viewing your own
  *  history) require sign-in, enforced where that action happens rather
- *  than as a blanket site-wide gate. The only thing this proxy still does
- *  is bounce an already-signed-in visitor away from /login. */
+ *  than as a blanket site-wide gate.
+ *
+ *  This still has to run on (almost) every route, not just /login: calling
+ *  getUser() here is what silently refreshes an expiring access token via
+ *  its refresh token and writes the new cookies back to the response.
+ *  Server Components can only *read* cookies, not write them, so without
+ *  this running broadly, sessions would randomly drop once the access
+ *  token expires. See Supabase's Next.js SSR guide. */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -43,5 +49,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login"],
+  // API routes enforce their own auth (returning JSON 401s) — redirecting
+  // them to an HTML login page would break every fetch()/.json() call.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.png|icon).*)"],
 };
