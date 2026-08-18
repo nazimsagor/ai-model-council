@@ -244,10 +244,17 @@ export function CouncilDashboard() {
   const activeWorkflowMeta = WORKFLOWS.find((w) => w.id === workflow)!;
   const copy = WORKFLOW_COPY[workflow];
 
-  const selectedModelName = useMemo(() => {
+  const selectedModel = useMemo(() => {
     const id = Array.from(selectedIds)[0];
-    return id ? (models.find((m) => m.id === id)?.name ?? id) : null;
+    return id ? (models.find((m) => m.id === id) ?? null) : null;
   }, [selectedIds, models]);
+  const selectedModelName = selectedModel?.name ?? (selectedIds.size > 0 ? Array.from(selectedIds)[0] : null);
+
+  const modelPickerRef = useRef<HTMLDivElement>(null);
+  function scrollToPicker() {
+    setShowAdvanced(true);
+    setTimeout(() => modelPickerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  }
 
   const pillLabel = (() => {
     if (workflow === "auto") return "Auto-route · picks 1 model for you";
@@ -308,7 +315,7 @@ export function CouncilDashboard() {
 
           <div className="flex items-center justify-between gap-2 rounded-lg border-t border-border px-1 pt-2" title="Enter to send · Shift + Enter for a new line">
             <button
-              onClick={() => setShowAdvanced(true)}
+              onClick={scrollToPicker}
               className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[12px] text-muted transition-colors hover:text-foreground"
             >
               <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
@@ -360,6 +367,76 @@ export function CouncilDashboard() {
 
           {showAdvanced && (
             <div className="space-y-4 border-t border-border px-4 py-4">
+              {!isAuto && (
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-2">
+                    {workflow === "chat" ? "Chat Model" : `${activeWorkflowMeta.label} Models`}
+                  </div>
+                  <div className="mb-0.5 text-[14px] font-medium text-foreground">
+                    {workflow === "chat"
+                      ? selectedModelName
+                        ? "One model is ready"
+                        : "No model selected yet"
+                      : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"} selected`}
+                  </div>
+                  <p className="mb-3 text-[11px] text-muted-2">
+                    {workflow === "chat"
+                      ? "Change it now or let auto-select choose."
+                      : "Adjust the council size or pick models manually below."}
+                  </p>
+
+                  {workflow === "chat" ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold uppercase text-accent-text">
+                          {(selectedModel?.provider ?? "?").slice(0, 1)}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate text-[13px] font-medium text-foreground">
+                            {selectedModelName ?? "No model selected"}
+                          </div>
+                          <div className="truncate text-[11px] capitalize text-muted-2">
+                            {selectedModel?.provider ?? (autoBusy ? "Auto-selecting…" : "—")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <button onClick={scrollToPicker} className="text-[12px] font-medium text-accent-text hover:underline">
+                          Change
+                        </button>
+                        {selectedModelName && (
+                          <span className="flex items-center gap-1 text-[11px] text-success">
+                            <Icon path={ICON_PATHS.check} className="h-3 w-3" /> Ready
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5">
+                      <div className="min-w-0">
+                        <div className="truncate text-[13px] font-medium text-foreground">
+                          {selectedIds.size || 0} model{selectedIds.size === 1 ? "" : "s"}
+                          {workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""}
+                        </div>
+                        <div className="text-[11px] text-muted-2">
+                          {MODES.find((m) => m.id === mode)?.label ?? "Custom"} council
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <button onClick={scrollToPicker} className="text-[12px] font-medium text-accent-text hover:underline">
+                          Change
+                        </button>
+                        {selectedIds.size > 0 && (
+                          <span className="flex items-center gap-1 text-[11px] text-success">
+                            <Icon path={ICON_PATHS.check} className="h-3 w-3" /> Ready
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {isMultiModel && (
                 <div className="flex flex-wrap items-center gap-2">
                   {MODES.map((m) => (
@@ -413,7 +490,7 @@ export function CouncilDashboard() {
               )}
 
               {!isAuto && (
-                <div>
+                <div ref={modelPickerRef}>
                   <div className="mb-1.5 flex items-center justify-between text-[12px] text-muted">
                     <span>Manual selection</span>
                     <span>{selectedIds.size} selected</span>
