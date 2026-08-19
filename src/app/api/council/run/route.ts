@@ -5,7 +5,6 @@ import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect"
 import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
 import { createRun } from "@/lib/repository";
-import { getVisitorId } from "@/lib/session";
 import { getCurrentUser } from "@/lib/subscription";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
@@ -36,8 +35,6 @@ function sseFormat(event: SSEEvent): string {
 }
 
 export async function POST(req: NextRequest) {
-  const visitorId = await getVisitorId();
-
   const apiKey = req.headers.get("x-openrouter-key")?.trim();
   if (!apiKey) {
     return new Response(
@@ -147,7 +144,7 @@ export async function POST(req: NextRequest) {
   }
 
   const runId = await createRun({
-    visitorId,
+    userId: user.id,
     prompt: body.prompt,
     systemPrompt,
     workflow,

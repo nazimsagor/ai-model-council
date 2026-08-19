@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 /** Server-side Supabase client bound to the request's cookies — reads the
  *  current auth session and (where called from a Route Handler or Server
  *  Action) can refresh it. Cookie writes are silently skipped when called
- *  from a plain Server Component render, same pattern as getVisitorId().
+ *  from a plain Server Component render.
  *
  *  Env vars are checked lazily, inside the function, not at module scope —
  *  a module-scope throw would fire the moment anything imports this file

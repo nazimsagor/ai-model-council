@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { listRuns } from "@/lib/repository";
-import { getVisitorId } from "@/lib/session";
+import { getCurrentUser } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const visitorId = await getVisitorId();
-  const runs = await listRuns(visitorId, 100);
+  const user = await getCurrentUser();
+  // Browsing is open to everyone, so a signed-out visitor just sees an
+  // empty history — not an error — matching how the rest of the site
+  // behaves when signed out.
+  if (!user) return NextResponse.json({ runs: [] });
+  const runs = await listRuns(user.id, 100);
   return NextResponse.json({ runs });
 }
