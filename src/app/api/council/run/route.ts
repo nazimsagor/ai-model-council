@@ -59,11 +59,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const workflow: Workflow = body.workflow ?? "council";
+
   // No run — free model or paid — works without an active subscription.
   // Checked here too, not just by hiding the "Add API key" UI, since this
   // endpoint is reachable directly with any key in the header.
   if (!user.isSubscribed) {
-    return new Response(JSON.stringify({ error: "Subscribe to run the council." }), { status: 402 });
+    const workflowLabel = workflow === "chat" ? "chat" : workflow === "compare" ? "compare" : "run the council";
+    return new Response(JSON.stringify({ error: `Subscribe to ${workflowLabel}.` }), { status: 402 });
   }
 
   const rateLimit = await checkRateLimit(`council-run:${user.id}`);
@@ -74,7 +77,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const workflow: Workflow = body.workflow ?? "council";
   const evaluate = workflow === "council";
   const isSingleModelWorkflow = workflow === "chat";
 
