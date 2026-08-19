@@ -41,6 +41,7 @@ export function JudgeStatus({
   if (phase === "evaluating") status = "judging";
   else if (phase === "synthesizing") status = "synthesizing";
   else if (phase === "done") status = evaluations.length > 0 ? "complete" : "failed";
+  else if (phase === "error") status = "failed";
   else if (judgeFailedNotice) status = "failed";
 
   const meta = STATUS_META[status];
