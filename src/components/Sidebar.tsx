@@ -108,11 +108,11 @@ export function Sidebar() {
           role="switch"
           aria-checked={freeModelsOnly}
           onClick={() => setFreeModelsOnly(!freeModelsOnly)}
-          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
+          className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
         >
           <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-              freeModelsOnly ? "translate-x-4" : "translate-x-0.5"
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-[left] ${
+              freeModelsOnly ? "left-[18px]" : "left-0.5"
             }`}
           />
         </button>
@@ -150,41 +150,43 @@ export function Sidebar() {
         </div>
       </div>
 
-      <button
-        onClick={openKeyModal}
-        className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
-      >
-        <span className="flex items-center gap-1.5">
-          <Icon path={ICON_PATHS.key} />
-          {hasApiKey ? "OpenRouter key set" : "Add API key"}
-        </span>
-        <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
-      </button>
-
       {user ? (
-        <div className="rounded-lg border border-border px-2.5 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate text-[12px] text-foreground" title={user.email ?? undefined}>
-              {user.email}
+        <>
+          <button
+            onClick={openKeyModal}
+            className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
+          >
+            <span className="flex items-center gap-1.5">
+              <Icon path={ICON_PATHS.key} />
+              {hasApiKey ? "OpenRouter key set" : "Add API key"}
             </span>
-            <button
-              onClick={signOut}
-              title="Sign out"
-              className="shrink-0 text-muted-2 transition-colors hover:text-foreground"
-            >
-              <Icon path={ICON_PATHS.logout} className="h-4 w-4" />
-            </button>
+            <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
+          </button>
+
+          <div className="rounded-lg border border-border px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-[12px] text-foreground" title={user.email ?? undefined}>
+                {user.email}
+              </span>
+              <button
+                onClick={signOut}
+                title="Sign out"
+                className="shrink-0 text-muted-2 transition-colors hover:text-foreground"
+              >
+                <Icon path={ICON_PATHS.logout} className="h-4 w-4" />
+              </button>
+            </div>
+            {user.isSubscribed ? (
+              <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-success">
+                Subscribed
+              </span>
+            ) : (
+              <Link href="/subscribe" className="mt-1 block text-[10px] font-medium text-accent-text hover:underline">
+                Upgrade to use paid models
+              </Link>
+            )}
           </div>
-          {user.isSubscribed ? (
-            <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-success">
-              Subscribed
-            </span>
-          ) : (
-            <Link href="/subscribe" className="mt-1 block text-[10px] font-medium text-accent-text hover:underline">
-              Upgrade to use paid models
-            </Link>
-          )}
-        </div>
+        </>
       ) : (
         !userLoading && (
           <Link
