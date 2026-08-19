@@ -4,7 +4,7 @@ import { selectJudges } from "@/lib/council/evaluation";
 import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect";
 import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
-import { createRun } from "@/lib/repository";
+import { createRun, failRun } from "@/lib/repository";
 import { getCurrentUser } from "@/lib/subscription";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
@@ -59,16 +59,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const workflow: Workflow = body.workflow ?? "council";
-
-  // No run — free model or paid — works without an active subscription.
-  // Checked here too, not just by hiding the "Add API key" UI, since this
-  // endpoint is reachable directly with any key in the header.
-  if (!user.isSubscribed) {
-    const workflowLabel = workflow === "chat" ? "chat" : workflow === "compare" ? "compare" : "run the council";
-    return new Response(JSON.stringify({ error: `Subscribe to ${workflowLabel}.` }), { status: 402 });
-  }
-
   const rateLimit = await checkRateLimit(`council-run:${user.id}`);
   if (!rateLimit.allowed) {
     return new Response(
@@ -76,6 +66,8 @@ export async function POST(req: NextRequest) {
       { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
     );
   }
+
+  const workflow: Workflow = body.workflow ?? "council";
 
   const evaluate = workflow === "council";
   const isSingleModelWorkflow = workflow === "chat";
@@ -120,21 +112,10 @@ export async function POST(req: NextRequest) {
   const maxTokens = body.maxTokens ?? 1024;
   const systemPrompt = buildSystemPrompt(promptMode, body.customSystemPrompt);
 
-  // Server-side budget guard (soft pre-flight check).
-  if (typeof body.maxBudget === "number") {
-    const catalogMap = new Map(catalog.map((m) => [m.id, m]));
-    const estimated = selectedModelIds.reduce((sum, id) => {
-      const m = catalogMap.get(id);
-      return sum + (m ? 400 * m.pricing.prompt + maxTokens * m.pricing.completion : 0);
-    }, 0);
-    if (estimated > body.maxBudget * 1.5) {
-      return new Response(
-        JSON.stringify({ error: "budget_exceeded", estimated, budget: body.maxBudget }),
-        { status: 402 }
-      );
-    }
-  }
-
+  // Created here — before the subscription/budget gates below — so a
+  // rejected attempt still shows up in Recent Work/History as a failed run
+  // instead of vanishing silently (the client already displayed it as
+  // "Failed" locally; only the DB record was missing).
   const runId = await createRun({
     userId: user.id,
     prompt: body.prompt,
@@ -147,6 +128,31 @@ export async function POST(req: NextRequest) {
     judgeModelIds,
     blindJudging: body.blindJudging ?? true,
   });
+
+  // No run — free model or paid — works without an active subscription.
+  // Checked here too, not just by hiding the "Add API key" UI, since this
+  // endpoint is reachable directly with any key in the header.
+  if (!user.isSubscribed) {
+    await failRun(runId);
+    const workflowLabel = workflow === "chat" ? "chat" : workflow === "compare" ? "compare" : "run the council";
+    return new Response(JSON.stringify({ error: `Subscribe to ${workflowLabel}.` }), { status: 402 });
+  }
+
+  // Server-side budget guard (soft pre-flight check).
+  if (typeof body.maxBudget === "number") {
+    const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+    const estimated = selectedModelIds.reduce((sum, id) => {
+      const m = catalogMap.get(id);
+      return sum + (m ? 400 * m.pricing.prompt + maxTokens * m.pricing.completion : 0);
+    }, 0);
+    if (estimated > body.maxBudget * 1.5) {
+      await failRun(runId);
+      return new Response(
+        JSON.stringify({ error: "budget_exceeded", estimated, budget: body.maxBudget }),
+        { status: 402 }
+      );
+    }
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

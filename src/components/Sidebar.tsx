@@ -137,10 +137,11 @@ export function Sidebar() {
             <Link
               key={r.id}
               href={`/history/${r.id}`}
-              className="block truncate rounded-md px-2.5 py-1.5 text-[12px] text-muted hover:bg-background hover:text-foreground"
-              title={r.prompt}
+              className="flex items-center gap-1.5 truncate rounded-md px-2.5 py-1.5 text-[12px] text-muted hover:bg-background hover:text-foreground"
+              title={r.status === "failed" ? `${r.prompt} (failed)` : r.prompt}
             >
-              {r.prompt}
+              {r.status === "failed" && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-danger" />}
+              <span className="truncate">{r.prompt}</span>
             </Link>
           ))}
         </div>
