@@ -37,21 +37,21 @@ function LoginForm() {
 
   return (
     <div className="flex h-full min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-center">
-        <div className="mb-4 flex justify-center">
-          <LogoMark className="h-8 w-8 text-foreground" />
+      <div className="w-full max-w-[380px] rounded-2xl border border-border bg-surface p-7 shadow-lg">
+        <div className="mb-8 flex items-center gap-2">
+          <LogoMark className="h-6 w-6 text-foreground" />
+          <span className="text-[16px] font-semibold tracking-tight">Model Council</span>
         </div>
-        <h1 className="mb-1 text-[18px] font-semibold">Sign in to AI Model Council</h1>
-        <p className="mb-6 text-[13px] text-muted-2">
-          Free models are free once you sign in. Paid models need a subscription.
-        </p>
+
+        <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">Welcome back</h1>
+        <p className="mb-7 text-[13px] text-muted-2">Sign in to access your Model Council workspace.</p>
 
         <button
           onClick={signInWithGoogle}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2.5 rounded-full border border-border bg-background px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:border-border-strong disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-[#1a1a1a] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden>
+          <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden>
             <path
               fill="#4285F4"
               d="M19.6 10.23c0-.68-.06-1.36-.17-2H10v3.79h5.4a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.75 2.97-4.32 2.97-7.31Z"
@@ -70,6 +70,12 @@ function LoginForm() {
         </button>
 
         {error && <p className="mt-3 text-[12px] text-danger">{error}</p>}
+
+        <p className="mt-6 text-center text-[11px] text-muted-2">
+          Free models are free once you sign in.
+          <br />
+          Paid models need a subscription.
+        </p>
       </div>
     </div>
   );
