@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useModels } from "@/lib/client/useModels";
 import { useCouncilRun } from "@/lib/client/useCouncilRun";
 import { useAppSettings } from "@/lib/client/appSettings";
@@ -45,6 +45,12 @@ const BUDGETS = [0.5, 1, 5, 10];
 
 const COMBO_MODEL_COUNT = 3;
 
+// Real paths (/chat, /compare, /council) so each workflow has its own
+// shareable URL, mirroring getmulti.ai's layout. "/" still defaults to chat
+// for the plain-Home nav entry, and the legacy ?workflow= query param is
+// still honored as a fallback so old links keep working.
+const PATH_WORKFLOW: Record<string, Workflow> = { "/chat": "chat", "/compare": "compare", "/council": "council" };
+
 const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: string }> = {
   chat: {
     plain: "One model.",
@@ -70,11 +76,12 @@ export function CouncilDashboard() {
   const { user, loading: userLoading } = useCurrentUser();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
-  const workflow: Workflow = (searchParams.get("workflow") as Workflow | null) ?? "chat";
+  const workflow: Workflow = PATH_WORKFLOW[pathname] ?? (searchParams.get("workflow") as Workflow | null) ?? "chat";
 
   function setWorkflow(w: Workflow) {
-    router.replace(w === "chat" ? "/" : `/?workflow=${w}`, { scroll: false });
+    router.replace(`/${w}`, { scroll: false });
   }
 
   // A retried/duplicate OAuth callback (e.g. double-clicking "Continue with

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { RunListItem } from "@/lib/repository";
 import { useAppSettings } from "@/lib/client/appSettings";
 import { useCurrentUser } from "@/lib/client/useCurrentUser";
@@ -36,9 +36,7 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const workflow = searchParams.get("workflow");
   const { freeModelsOnly, setFreeModelsOnly, hasApiKey, openKeyModal } = useAppSettings();
   const { user, loading: userLoading } = useCurrentUser();
 
@@ -58,8 +56,6 @@ export function Sidebar() {
       .catch(() => setRecent([]));
   }, [pathname]);
 
-  const onHome = pathname === "/";
-
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface px-3 py-4">
       <Link href="/" className="flex items-center gap-2 px-1">
@@ -77,10 +73,10 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col gap-0.5">
-        <NavLink href="/" active={onHome && !workflow} icon="home" label="Home" />
-        <NavLink href="/?workflow=chat" active={onHome && workflow === "chat"} icon="chat" label="Chat" />
-        <NavLink href="/?workflow=compare" active={onHome && workflow === "compare"} icon="compare" label="Compare" />
-        <NavLink href="/?workflow=council" active={onHome && workflow === "council"} icon="council" label="Council" />
+        <NavLink href="/" active={pathname === "/"} icon="home" label="Home" />
+        <NavLink href="/chat" active={pathname === "/chat"} icon="chat" label="Chat" />
+        <NavLink href="/compare" active={pathname === "/compare"} icon="compare" label="Compare" />
+        <NavLink href="/council" active={pathname === "/council"} icon="council" label="Council" />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
       </nav>
 
@@ -202,7 +198,7 @@ export function Sidebar() {
       ) : (
         !userLoading && (
           <Link
-            href={`/login?next=${encodeURIComponent(pathname + (workflow ? `?workflow=${workflow}` : ""))}`}
+            href={`/login?next=${encodeURIComponent(pathname)}`}
             className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 py-2 text-[12px] font-medium text-foreground transition-colors hover:border-border-strong"
           >
             <Icon path={ICON_PATHS.login} className="h-3.5 w-3.5" />
