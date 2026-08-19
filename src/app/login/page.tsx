@@ -47,6 +47,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -80,7 +81,11 @@ function LoginForm() {
     const supabase = createSupabaseBrowserClient();
 
     if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name.trim() || undefined } },
+      });
       if (error) {
         setError(error.message);
         setLoading(false);
@@ -144,12 +149,12 @@ function LoginForm() {
         </div>
 
         <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">
-          {mode === "signin" ? "Welcome back" : "Create your account"}
+          {mode === "signin" ? "Welcome back" : "Get started free"}
         </h1>
         <p className="mb-6 text-[13px] text-muted-2">
           {mode === "signin"
             ? "Sign in to access your Model Council workspace."
-            : "Free models are free once you sign up."}
+            : "Create an account to start using Model Council."}
         </p>
 
         <div className="space-y-2.5">
@@ -178,6 +183,19 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
+          {mode === "signup" && (
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium text-foreground">Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                autoComplete="name"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-2 focus:border-accent"
+              />
+            </div>
+          )}
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-foreground">Email</label>
             <input
@@ -195,7 +213,7 @@ function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={mode === "signin" ? "••••••••" : "Min. 6 characters"}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               minLength={6}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-2 focus:border-accent"
@@ -215,7 +233,22 @@ function LoginForm() {
         {error && <p className="mt-3 text-[12px] text-danger">{error}</p>}
         {notice && <p className="mt-3 text-[12px] text-success">{notice}</p>}
 
-        <p className="mt-6 text-center text-[11px] text-muted-2">
+        <p className="mt-4 text-center text-[12px] text-muted-2">
+          {mode === "signin" ? "New here? " : "Already have one? "}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setError(null);
+              setNotice(null);
+            }}
+            className="font-semibold text-accent-text hover:underline"
+          >
+            {mode === "signin" ? "Create one →" : "Sign in →"}
+          </button>
+        </p>
+
+        <p className="mt-4 text-center text-[11px] text-muted-2">
           Free models are free once you sign in.
           <br />
           Paid models need a subscription.
