@@ -22,7 +22,15 @@ const STATUS_COLOR: Record<string, string> = {
   timeout: "text-danger",
 };
 
-export function StatusBoard({ order, modelStates }: { order: string[]; modelStates: Record<string, ModelState> }) {
+export function StatusBoard({
+  order,
+  modelStates,
+  label = "AI Model Council",
+}: {
+  order: string[];
+  modelStates: Record<string, ModelState>;
+  label?: string;
+}) {
   const doneCount = order.filter((id) => {
     const s = modelStates[id]?.status;
     return s === "complete" || s === "failed" || s === "timeout";
@@ -31,7 +39,7 @@ export function StatusBoard({ order, modelStates }: { order: string[]; modelStat
   return (
     <div className="rounded-lg border border-border bg-surface px-4 py-3">
       <div className="mb-2 flex items-center justify-between text-[12px] text-muted">
-        <span className="font-semibold uppercase tracking-wide text-muted-2">AI Model Council</span>
+        <span className="font-semibold uppercase tracking-wide text-muted-2">{label}</span>
         <span>
           {doneCount}/{order.length} complete
         </span>

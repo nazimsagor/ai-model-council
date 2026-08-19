@@ -120,8 +120,20 @@ export function applyEvent(state: RunViewState, event: SSEEvent): RunViewState {
         totalCost: event.totalCost,
         totalTimeMs: event.totalTimeMs,
       };
-    case "error":
-      return { ...state, notices: [...state.notices, event.message] };
+    case "error": {
+      // A top-level error (e.g. the request was rejected before any model
+      // even started streaming) would otherwise leave every model stuck on
+      // "Queued"/"Waiting for response" forever — flip anything not yet
+      // finished over to failed so the UI reflects that the run stopped.
+      const modelStates = { ...state.modelStates };
+      for (const id of state.order) {
+        const s = modelStates[id];
+        if (!s || s.status === "pending" || s.status === "streaming") {
+          modelStates[id] = { ...s, modelId: id, status: "failed", content: s?.content ?? "", error: event.message };
+        }
+      }
+      return { ...state, phase: "error", modelStates, notices: [...state.notices, event.message] };
+    }
     default:
       return state;
   }

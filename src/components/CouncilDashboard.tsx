@@ -990,7 +990,11 @@ export function CouncilDashboard() {
             />
           )}
 
-          <StatusBoard order={state.order} modelStates={state.modelStates} />
+          <StatusBoard
+            order={state.order}
+            modelStates={state.modelStates}
+            label={workflow === "council" ? "AI Model Council" : activeWorkflowMeta.label}
+          />
 
           {state.notices.map((n, i) => (
             <div key={i} className="rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-[12px] text-warning">
