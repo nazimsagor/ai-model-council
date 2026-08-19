@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
 import { LogoMark } from "@/components/LogoMark";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 export default function LoginPage() {
   return (
@@ -74,11 +74,29 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const supabase = createSupabaseBrowserClient();
+
+    if (mode === "forgot") {
+      if (!email.trim()) return;
+      setLoading(true);
+      setError(null);
+      setNotice(null);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setLoading(false);
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setNotice("If that email has an account, a reset link is on its way — check your inbox.");
+      return;
+    }
+
     if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError(null);
     setNotice(null);
-    const supabase = createSupabaseBrowserClient();
 
     if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({
@@ -119,68 +137,76 @@ function LoginForm() {
           <span className="text-[16px] font-semibold tracking-tight">Model Council</span>
         </div>
 
-        <div className="mb-6 flex rounded-full border border-border bg-background p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setMode("signin");
-              setError(null);
-              setNotice(null);
-            }}
-            className={`flex-1 rounded-full py-1.5 text-[13px] font-medium transition-colors ${
-              mode === "signin" ? "bg-surface text-foreground shadow-sm" : "text-muted-2 hover:text-foreground"
-            }`}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("signup");
-              setError(null);
-              setNotice(null);
-            }}
-            className={`flex-1 rounded-full py-1.5 text-[13px] font-medium transition-colors ${
-              mode === "signup" ? "bg-surface text-foreground shadow-sm" : "text-muted-2 hover:text-foreground"
-            }`}
-          >
-            Create account
-          </button>
-        </div>
+        {mode !== "forgot" && (
+          <div className="mb-6 flex rounded-full border border-border bg-background p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setError(null);
+                setNotice(null);
+              }}
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-medium transition-colors ${
+                mode === "signin" ? "bg-surface text-foreground shadow-sm" : "text-muted-2 hover:text-foreground"
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup");
+                setError(null);
+                setNotice(null);
+              }}
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-medium transition-colors ${
+                mode === "signup" ? "bg-surface text-foreground shadow-sm" : "text-muted-2 hover:text-foreground"
+              }`}
+            >
+              Create account
+            </button>
+          </div>
+        )}
 
         <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">
-          {mode === "signin" ? "Welcome back" : "Get started free"}
+          {mode === "signin" ? "Welcome back" : mode === "signup" ? "Get started free" : "Reset your password"}
         </h1>
         <p className="mb-6 text-[13px] text-muted-2">
           {mode === "signin"
             ? "Sign in to access your Model Council workspace."
-            : "Create an account to start using Model Council."}
+            : mode === "signup"
+              ? "Create an account to start using Model Council."
+              : "Enter your email and we'll send you a reset link."}
         </p>
 
-        <div className="space-y-2.5">
-          <button
-            onClick={() => signInWithProvider("google")}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-[#1a1a1a] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
-          <button
-            onClick={() => signInWithProvider("github")}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-[#1a1a1a] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            <GitHubIcon />
-            Continue with GitHub
-          </button>
-        </div>
+        {mode !== "forgot" && (
+          <>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => signInWithProvider("google")}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-[#1a1a1a] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <GoogleIcon />
+                Continue with Google
+              </button>
+              <button
+                onClick={() => signInWithProvider("github")}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2.5 rounded-lg bg-white px-4 py-3 text-[14px] font-semibold text-[#1a1a1a] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <GitHubIcon />
+                Continue with GitHub
+              </button>
+            </div>
 
-        <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[11px] text-muted-2">or</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] text-muted-2">or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {mode === "signup" && (
@@ -207,25 +233,48 @@ function LoginForm() {
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-2 focus:border-accent"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-[12px] font-medium text-foreground">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "signin" ? "••••••••" : "Min. 6 characters"}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              minLength={6}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-2 focus:border-accent"
-            />
-          </div>
+          {mode !== "forgot" && (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-[12px] font-medium text-foreground">Password</label>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                      setNotice(null);
+                    }}
+                    className="text-[11px] text-accent-text hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "signin" ? "••••••••" : "Min. 6 characters"}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                minLength={6}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-2 focus:border-accent"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
-            disabled={loading || !email.trim() || !password.trim()}
+            disabled={loading || !email.trim() || (mode !== "forgot" && !password.trim())}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-3 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            {loading
+              ? "Please wait…"
+              : mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Send reset link"}
             {!loading && <span aria-hidden>→</span>}
           </button>
         </form>
@@ -233,20 +282,36 @@ function LoginForm() {
         {error && <p className="mt-3 text-[12px] text-danger">{error}</p>}
         {notice && <p className="mt-3 text-[12px] text-success">{notice}</p>}
 
-        <p className="mt-4 text-center text-[12px] text-muted-2">
-          {mode === "signin" ? "New here? " : "Already have one? "}
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === "signin" ? "signup" : "signin");
-              setError(null);
-              setNotice(null);
-            }}
-            className="font-semibold text-accent-text hover:underline"
-          >
-            {mode === "signin" ? "Create one →" : "Sign in →"}
-          </button>
-        </p>
+        {mode === "forgot" ? (
+          <p className="mt-4 text-center text-[12px] text-muted-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setError(null);
+                setNotice(null);
+              }}
+              className="font-semibold text-accent-text hover:underline"
+            >
+              ← Back to sign in
+            </button>
+          </p>
+        ) : (
+          <p className="mt-4 text-center text-[12px] text-muted-2">
+            {mode === "signin" ? "New here? " : "Already have one? "}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError(null);
+                setNotice(null);
+              }}
+              className="font-semibold text-accent-text hover:underline"
+            >
+              {mode === "signin" ? "Create one →" : "Sign in →"}
+            </button>
+          </p>
+        )}
 
         <p className="mt-4 text-center text-[11px] text-muted-2">
           Free models are free once you sign in.

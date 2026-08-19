@@ -7,6 +7,7 @@ import { runCouncil } from "@/lib/council/orchestrator";
 import { createRun } from "@/lib/repository";
 import { getVisitorId } from "@/lib/session";
 import { getCurrentUser } from "@/lib/subscription";
+import { checkRateLimit } from "@/lib/rateLimit";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -59,6 +60,14 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Sign in to chat — it's free with any Google account." }), {
       status: 401,
     });
+  }
+
+  const rateLimit = await checkRateLimit(`council-run:${user.id}`);
+  if (!rateLimit.allowed) {
+    return new Response(
+      JSON.stringify({ error: "You're sending requests too fast — please wait a bit and try again." }),
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
   }
 
   const workflow: Workflow = body.workflow ?? "council";
