@@ -59,6 +59,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // No run — free model or paid — works without an active subscription.
+  // Checked here too, not just by hiding the "Add API key" UI, since this
+  // endpoint is reachable directly with any key in the header.
+  if (!user.isSubscribed) {
+    return new Response(JSON.stringify({ error: "Subscribe to run the council." }), { status: 402 });
+  }
+
   const rateLimit = await checkRateLimit(`council-run:${user.id}`);
   if (!rateLimit.allowed) {
     return new Response(
@@ -106,23 +113,6 @@ export async function POST(req: NextRequest) {
       ? [explicitJudgeId]
       : selectJudges(catalog, selectedModelIds, judgeCount, await getTrendingModelIds())
     : [];
-
-  // Free models are usable by any signed-in account; a paid (non-$0) model
-  // anywhere in the lineup — debater or judge — needs a subscription.
-  if (!user.isSubscribed) {
-    const catalogMap = new Map(catalog.map((m) => [m.id, m]));
-    const isFree = (id: string) => {
-      const m = catalogMap.get(id);
-      return !m || (m.pricing.prompt === 0 && m.pricing.completion === 0);
-    };
-    const hasPaidModel = [...selectedModelIds, ...judgeModelIds].some((id) => !isFree(id));
-    if (hasPaidModel) {
-      return new Response(
-        JSON.stringify({ error: "That includes a paid model — subscribe to use it, or pick a free model instead." }),
-        { status: 402 }
-      );
-    }
-  }
 
   const temperature = body.temperature ?? 0.7;
   const maxTokens = body.maxTokens ?? 1024;

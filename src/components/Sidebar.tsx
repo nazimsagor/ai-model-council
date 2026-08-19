@@ -152,16 +152,28 @@ export function Sidebar() {
 
       {user ? (
         <>
-          <button
-            onClick={openKeyModal}
-            className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon path={ICON_PATHS.key} />
-              {hasApiKey ? "OpenRouter key set" : "Add API key"}
-            </span>
-            <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
-          </button>
+          {user.isSubscribed ? (
+            <button
+              onClick={openKeyModal}
+              className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
+            >
+              <span className="flex items-center gap-1.5">
+                <Icon path={ICON_PATHS.key} />
+                {hasApiKey ? "OpenRouter key set" : "Add API key"}
+              </span>
+              <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
+            </button>
+          ) : (
+            <Link
+              href="/subscribe"
+              className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] text-muted transition-colors hover:border-border-strong hover:text-foreground"
+            >
+              <span className="flex items-center gap-1.5">
+                <Icon path={ICON_PATHS.key} />
+                Subscribe to add API key
+              </span>
+            </Link>
+          )}
 
           <div className="rounded-lg border border-border px-2.5 py-2">
             <div className="flex items-center justify-between gap-2">
@@ -182,7 +194,7 @@ export function Sidebar() {
               </span>
             ) : (
               <Link href="/subscribe" className="mt-1 block text-[10px] font-medium text-accent-text hover:underline">
-                Upgrade to use paid models
+                Subscribe to run models
               </Link>
             )}
           </div>
