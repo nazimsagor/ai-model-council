@@ -108,12 +108,12 @@ export function Sidebar() {
           role="switch"
           aria-checked={freeModelsOnly}
           onClick={() => setFreeModelsOnly(!freeModelsOnly)}
-          className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
+          style={{ backgroundColor: freeModelsOnly ? "var(--accent)" : "var(--border-strong)" }}
+          className="relative h-5 w-9 shrink-0 overflow-hidden rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
         >
           <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-[left] ${
-              freeModelsOnly ? "left-[18px]" : "left-0.5"
-            }`}
+            style={{ left: freeModelsOnly ? 18 : 2 }}
+            className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-[left]"
           />
         </button>
       </label>
