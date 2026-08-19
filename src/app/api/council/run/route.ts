@@ -70,9 +70,9 @@ export async function POST(req: NextRequest) {
     catalog = catalog.filter((m) => m.pricing.prompt === 0 && m.pricing.completion === 0);
   }
 
-  const mode: CouncilMode = body.mode ?? "seven";
+  const mode: CouncilMode = body.mode ?? "six";
   const promptMode: PromptMode = body.promptMode ?? "standard";
-  const desiredCount = isSingleModelWorkflow ? 1 : (COUNCIL_MODE_COUNTS[mode] ?? 7);
+  const desiredCount = isSingleModelWorkflow ? 1 : (COUNCIL_MODE_COUNTS[mode] ?? 6);
 
   let selectedModelIds = body.selectedModelIds ?? [];
   // Auto-select as a fallback when the client didn't pick anything itself.

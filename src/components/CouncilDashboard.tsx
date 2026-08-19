@@ -27,9 +27,9 @@ const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof
 ];
 
 const MODES: { id: string; label: string; count: number; hint: string }[] = [
-  { id: "five", label: "5-Member", count: 5, hint: "5 debaters + judge" },
-  { id: "seven", label: "7-Member", count: 7, hint: "7 debaters + judge" },
-  { id: "nine", label: "9-Member", count: 9, hint: "9 debaters + judge" },
+  { id: "four", label: "4-Member", count: 4, hint: "4 debaters + judge" },
+  { id: "six", label: "6-Member", count: 6, hint: "6 debaters + judge" },
+  { id: "eight", label: "8-Member", count: 8, hint: "8 debaters + judge" },
 ];
 
 const PROMPT_MODES: { id: PromptMode; label: string }[] = [
@@ -102,7 +102,7 @@ export function CouncilDashboard() {
 
   const [prompt, setPrompt] = useState("");
   const [web, setWeb] = useState(false);
-  const [mode, setMode] = useState("seven");
+  const [mode, setMode] = useState("six");
   const [promptMode, setPromptMode] = useState<PromptMode>("standard");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoReason, setAutoReason] = useState<string | null>(null);
@@ -111,6 +111,7 @@ export function CouncilDashboard() {
   const [recommendationSource, setRecommendationSource] = useState<"trending" | "heuristic" | null>(null);
   const [combo, setCombo] = useState<string>("quality-leaders");
   const [comboMenuOpen, setComboMenuOpen] = useState(false);
+  const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -271,7 +272,7 @@ export function CouncilDashboard() {
     if (availableModels.length === 0 || !prompt.trim()) return;
     const timer = setTimeout(() => {
       if (modelPicked.current || selectedIds.size > 0) return;
-      autoSelect(isMultiModel ? (MODES.find((m) => m.id === mode)?.count ?? 7) : 1);
+      autoSelect(isMultiModel ? (MODES.find((m) => m.id === mode)?.count ?? 6) : 1);
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -319,7 +320,14 @@ export function CouncilDashboard() {
   function handleModeClick(m: (typeof MODES)[number]) {
     setMode(m.id);
     setJudgeCount(1);
-    autoSelect(m.count);
+    // Re-roll immediately from the live-data recommendation at the new
+    // size, the same way switching workflows or "Use free models" does —
+    // autoSelect() needs a typed prompt and would silently no-op here,
+    // leaving the old lineup showing under the new size label.
+    modelPicked.current = false;
+    setSelectedIds(new Set());
+    setJudgeModelId(null);
+    setRecommendationSource(null);
   }
 
   async function handleRun() {
@@ -574,6 +582,76 @@ export function CouncilDashboard() {
                   Manually pick
                 </button>
               </div>
+            ) : workflow === "council" ? (
+              <div className="flex min-w-0 items-center gap-1.5">
+                {selectedIds.size > 0 && (
+                  <div className="flex shrink-0 -space-x-1.5">
+                    {Array.from(selectedIds)
+                      .slice(0, 4)
+                      .map((id) => {
+                        const m = models.find((x) => x.id === id);
+                        return (
+                          <span key={id} className="block h-6 w-6 overflow-hidden rounded-full ring-2 ring-surface">
+                            <ProviderIcon provider={m?.provider ?? "?"} className="h-6 w-6 rounded-none" />
+                          </span>
+                        );
+                      })}
+                  </div>
+                )}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSizeMenuOpen((v) => !v)}
+                    className="flex min-w-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-left text-[12px] transition-colors hover:border-border-strong"
+                  >
+                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-2">Size</span>
+                    <span className="truncate font-medium text-foreground">
+                      {MODES.find((m) => m.id === mode)?.label ?? "Custom"}
+                    </span>
+                    <Icon path={ICON_PATHS.chevronDown} className="h-3 w-3 shrink-0 text-muted-2" />
+                  </button>
+
+                  {sizeMenuOpen && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Close size menu"
+                        className="fixed inset-0 z-40 cursor-default"
+                        onClick={() => setSizeMenuOpen(false)}
+                      />
+                      <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-border bg-surface-raised py-1.5 shadow-lg">
+                        <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-2">
+                          Council size
+                        </div>
+                        {MODES.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              handleModeClick(m);
+                              setSizeMenuOpen(false);
+                            }}
+                            className={`flex w-full flex-col px-3 py-1.5 text-left transition-colors ${
+                              mode === m.id ? "bg-accent-soft text-accent-text" : "text-foreground hover:bg-background"
+                            }`}
+                          >
+                            <span className="text-[12px] font-medium">{m.label}</span>
+                            <span className="text-[11px] text-muted-2">{m.hint}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openPicker}
+                  className="shrink-0 rounded-md border border-border px-2.5 py-1.5 text-[12px] text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                >
+                  Change
+                </button>
+              </div>
             ) : (
               <button
                 onClick={openPicker}
@@ -584,11 +662,7 @@ export function CouncilDashboard() {
                   {isMultiModel ? "Running with" : "Answering with"}
                 </span>
                 <span className="truncate font-medium text-foreground">
-                  {workflow === "chat"
-                    ? (selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet"))
-                    : `${selectedIds.size || 0} model${selectedIds.size === 1 ? "" : "s"}${
-                        workflow === "council" ? ` · ${judgeCount} judge${judgeCount === 1 ? "" : "s"}` : ""
-                      }`}
+                  {selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet")}
                 </span>
                 <span className="shrink-0 text-[11px] font-medium text-accent-text">Change</span>
               </button>
@@ -732,22 +806,8 @@ export function CouncilDashboard() {
 
               {isMultiModel && (
                 <div className="flex flex-wrap items-center gap-2">
-                  {MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => handleModeClick(m)}
-                      className={`rounded-md border px-3 py-1.5 text-left text-[12px] transition-colors ${
-                        mode === m.id
-                          ? "border-accent bg-accent-soft text-accent-text"
-                          : "border-border text-muted hover:text-foreground"
-                      }`}
-                    >
-                      <div className="font-medium">{m.label} Council</div>
-                      <div className="text-[10px] opacity-70">{m.hint}</div>
-                    </button>
-                  ))}
                   <button
-                    onClick={() => autoSelect(MODES.find((x) => x.id === mode)?.count ?? 7)}
+                    onClick={() => autoSelect(MODES.find((x) => x.id === mode)?.count ?? 6)}
                     disabled={!prompt.trim() || autoBusy}
                     className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground disabled:opacity-40"
                   >

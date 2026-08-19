@@ -325,7 +325,7 @@ export function buildCouncilRecommendation(
 }
 
 export const COUNCIL_MODE_COUNTS: Record<string, number> = {
-  five: 5,
-  seven: 7,
-  nine: 9,
+  four: 4,
+  six: 6,
+  eight: 8,
 };

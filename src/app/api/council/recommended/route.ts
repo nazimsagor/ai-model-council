@@ -5,9 +5,9 @@ import { buildCouncilRecommendation, COUNCIL_MODE_COUNTS } from "@/lib/council/a
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const modeParam = req.nextUrl.searchParams.get("mode") ?? "seven";
+  const modeParam = req.nextUrl.searchParams.get("mode") ?? "six";
   const freeOnly = req.nextUrl.searchParams.get("freeModelsOnly") === "1";
-  const count = COUNCIL_MODE_COUNTS[modeParam] ?? COUNCIL_MODE_COUNTS.seven;
+  const count = COUNCIL_MODE_COUNTS[modeParam] ?? COUNCIL_MODE_COUNTS.six;
 
   let catalog = await listModels();
   if (freeOnly) {
