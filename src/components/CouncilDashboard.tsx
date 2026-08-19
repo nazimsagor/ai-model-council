@@ -9,6 +9,7 @@ import { useAppSettings } from "@/lib/client/appSettings";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { ModelPickerModal } from "@/components/ModelPickerModal";
 import { StatusBoard } from "@/components/StatusBoard";
+import { JudgeStatus } from "@/components/JudgeStatus";
 import { ResponseCard } from "@/components/ResponseCard";
 import { SingleResponseView } from "@/components/SingleResponseView";
 import { VerdictPanel } from "@/components/VerdictPanel";
@@ -26,10 +27,9 @@ const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof
 ];
 
 const MODES: { id: string; label: string; count: number; hint: string }[] = [
-  { id: "fast", label: "Fast", count: 4, hint: "3–5 models" },
-  { id: "balanced", label: "Balanced", count: 8, hint: "6–10 models" },
-  { id: "deep", label: "Deep", count: 15, hint: "10–20 models" },
-  { id: "maximum", label: "Maximum", count: 25, hint: "As many as your budget allows" },
+  { id: "five", label: "5-Member", count: 5, hint: "5 debaters + judge" },
+  { id: "seven", label: "7-Member", count: 7, hint: "7 debaters + judge" },
+  { id: "nine", label: "9-Member", count: 9, hint: "9 debaters + judge" },
 ];
 
 const PROMPT_MODES: { id: PromptMode; label: string }[] = [
@@ -102,7 +102,7 @@ export function CouncilDashboard() {
 
   const [prompt, setPrompt] = useState("");
   const [web, setWeb] = useState(false);
-  const [mode, setMode] = useState("balanced");
+  const [mode, setMode] = useState("seven");
   const [promptMode, setPromptMode] = useState<PromptMode>("standard");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoReason, setAutoReason] = useState<string | null>(null);
@@ -160,6 +160,19 @@ export function CouncilDashboard() {
     setRecommendationSource(null);
     setCombo("quality-leaders");
   }, [workflow]);
+
+  // "Use free models" is a hard constraint — flipping it after Council/
+  // Compare already auto-populated a lineup must re-roll that lineup, not
+  // silently leave the old (possibly now-forbidden) picks in place.
+  const prevFreeModelsOnlyRef = useRef(freeModelsOnly);
+  useEffect(() => {
+    if (prevFreeModelsOnlyRef.current === freeModelsOnly) return;
+    prevFreeModelsOnlyRef.current = freeModelsOnly;
+    modelPicked.current = false;
+    setSelectedIds(new Set());
+    setJudgeModelId(null);
+    setRecommendationSource(null);
+  }, [freeModelsOnly]);
 
   const availableModels = useMemo(
     () => (freeModelsOnly ? models.filter((m) => m.pricing.prompt === 0 && m.pricing.completion === 0) : models),
@@ -258,7 +271,7 @@ export function CouncilDashboard() {
     if (availableModels.length === 0 || !prompt.trim()) return;
     const timer = setTimeout(() => {
       if (modelPicked.current || selectedIds.size > 0) return;
-      autoSelect(isMultiModel ? (MODES.find((m) => m.id === mode)?.count ?? 8) : 1);
+      autoSelect(isMultiModel ? (MODES.find((m) => m.id === mode)?.count ?? 7) : 1);
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -305,7 +318,7 @@ export function CouncilDashboard() {
 
   function handleModeClick(m: (typeof MODES)[number]) {
     setMode(m.id);
-    setJudgeCount(m.id === "deep" || m.id === "maximum" ? 3 : 1);
+    setJudgeCount(1);
     autoSelect(m.count);
   }
 
@@ -734,7 +747,7 @@ export function CouncilDashboard() {
                     </button>
                   ))}
                   <button
-                    onClick={() => autoSelect(MODES.find((x) => x.id === mode)?.count ?? 8)}
+                    onClick={() => autoSelect(MODES.find((x) => x.id === mode)?.count ?? 7)}
                     disabled={!prompt.trim() || autoBusy}
                     className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground disabled:opacity-40"
                   >
@@ -907,6 +920,16 @@ export function CouncilDashboard() {
 
       {state && (
         <div className="space-y-4">
+          {workflow === "council" && (
+            <JudgeStatus
+              judgeModelId={judgeModelId}
+              models={models}
+              phase={state.phase}
+              evaluations={state.evaluations}
+              notices={state.notices}
+            />
+          )}
+
           <StatusBoard order={state.order} modelStates={state.modelStates} />
 
           {state.notices.map((n, i) => (

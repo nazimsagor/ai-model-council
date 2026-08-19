@@ -40,7 +40,7 @@ export function Sidebar() {
   const router = useRouter();
   const workflow = searchParams.get("workflow");
   const { freeModelsOnly, setFreeModelsOnly, hasApiKey, openKeyModal } = useAppSettings();
-  const { user } = useCurrentUser();
+  const { user, loading: userLoading } = useCurrentUser();
 
   const [recent, setRecent] = useState<RunListItem[] | null>(null);
 
@@ -86,7 +86,7 @@ export function Sidebar() {
 
       <label
         className={`flex cursor-pointer items-center justify-between rounded-lg border px-2.5 py-2 text-[12px] transition-colors ${
-          freeModelsOnly ? "border-accent bg-accent-soft" : "border-border bg-background hover:border-border-strong"
+          freeModelsOnly ? "border-accent/50 bg-accent-soft" : "border-border bg-background hover:border-border-strong"
         }`}
       >
         <span className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export function Sidebar() {
           role="switch"
           aria-checked={freeModelsOnly}
           onClick={() => setFreeModelsOnly(!freeModelsOnly)}
-          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${freeModelsOnly ? "bg-accent" : "bg-border-strong"}`}
         >
           <span
             className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -161,7 +161,7 @@ export function Sidebar() {
         <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
       </button>
 
-      {user && (
+      {user ? (
         <div className="rounded-lg border border-border px-2.5 py-2">
           <div className="flex items-center justify-between gap-2">
             <span className="min-w-0 truncate text-[12px] text-foreground" title={user.email ?? undefined}>
@@ -185,6 +185,16 @@ export function Sidebar() {
             </Link>
           )}
         </div>
+      ) : (
+        !userLoading && (
+          <Link
+            href={`/login?next=${encodeURIComponent(pathname + (workflow ? `?workflow=${workflow}` : ""))}`}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 py-2 text-[12px] font-medium text-foreground transition-colors hover:border-border-strong"
+          >
+            <Icon path={ICON_PATHS.login} className="h-3.5 w-3.5" />
+            Sign in
+          </Link>
+        )
       )}
     </aside>
   );

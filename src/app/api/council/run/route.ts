@@ -70,9 +70,9 @@ export async function POST(req: NextRequest) {
     catalog = catalog.filter((m) => m.pricing.prompt === 0 && m.pricing.completion === 0);
   }
 
-  const mode: CouncilMode = body.mode ?? "balanced";
+  const mode: CouncilMode = body.mode ?? "seven";
   const promptMode: PromptMode = body.promptMode ?? "standard";
-  const desiredCount = isSingleModelWorkflow ? 1 : (COUNCIL_MODE_COUNTS[mode] ?? 8);
+  const desiredCount = isSingleModelWorkflow ? 1 : (COUNCIL_MODE_COUNTS[mode] ?? 7);
 
   let selectedModelIds = body.selectedModelIds ?? [];
   // Auto-select as a fallback when the client didn't pick anything itself.
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     body.judgeModelId && catalog.some((m) => m.id === body.judgeModelId) && !selectedModelIds.includes(body.judgeModelId)
       ? body.judgeModelId
       : undefined;
-  const judgeCount = evaluate ? (explicitJudgeId ? 1 : (body.judgeCount ?? (mode === "deep" || mode === "maximum" ? 3 : 1))) : 0;
+  const judgeCount = evaluate ? (explicitJudgeId ? 1 : (body.judgeCount ?? 1)) : 0;
   const judgeModelIds = evaluate
     ? explicitJudgeId
       ? [explicitJudgeId]

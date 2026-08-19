@@ -17,7 +17,7 @@ export interface OpenRouterModel {
   };
 }
 
-export type CouncilMode = "fast" | "balanced" | "deep" | "maximum" | "custom";
+export type CouncilMode = "five" | "seven" | "nine" | "custom";
 
 export type Workflow = "chat" | "compare" | "council";
 

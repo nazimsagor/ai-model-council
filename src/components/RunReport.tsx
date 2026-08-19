@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ResponseCard } from "@/components/ResponseCard";
+import { JudgeStatus } from "@/components/JudgeStatus";
 import { VerdictPanel } from "@/components/VerdictPanel";
 import { DisagreementList } from "@/components/DisagreementList";
 import { CostSpeedSummary } from "@/components/CostSpeedSummary";
@@ -55,6 +56,15 @@ export function RunReport({ run }: { run: CouncilRun }) {
       </div>
 
       <div className="space-y-4">
+        {run.workflow === "council" && (
+          <JudgeStatus
+            judgeModelId={run.judgeModelIds[0] ?? null}
+            phase="done"
+            evaluations={run.evaluations}
+            notices={[]}
+          />
+        )}
+
         {run.summary && (
           <>
             <VerdictPanel summary={run.summary} modelCount={order.length} />

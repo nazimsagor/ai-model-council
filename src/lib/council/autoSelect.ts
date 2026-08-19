@@ -273,7 +273,9 @@ export function buildCouncilRecommendation(
     (id): id is string => id !== null
   );
   const opus5 = findClaudeOpus5(catalog);
-  const pinnedPicks = opus5 && !majorLabPicks.includes(opus5) ? [...majorLabPicks, opus5] : majorLabPicks;
+  // Opus 5 goes first (not appended) so it survives truncation for smaller
+  // council sizes (5/7-member) instead of only ever showing up at 8+.
+  const pinnedPicks = opus5 && !majorLabPicks.includes(opus5) ? [opus5, ...majorLabPicks] : majorLabPicks;
 
   if (pinnedPicks.length >= count) {
     const debaters = pinnedPicks.slice(0, count);
@@ -323,8 +325,7 @@ export function buildCouncilRecommendation(
 }
 
 export const COUNCIL_MODE_COUNTS: Record<string, number> = {
-  fast: 4,
-  balanced: 8,
-  deep: 15,
-  maximum: 25,
+  five: 5,
+  seven: 7,
+  nine: 9,
 };
