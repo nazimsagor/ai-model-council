@@ -67,7 +67,7 @@ export function CouncilDashboard() {
   const { models, error: modelsError } = useModels();
   const { state, run, clear } = useCouncilRun();
   const { freeModelsOnly, apiKey, hasApiKey, openKeyModal, defaultModelId, setDefaultModelId } = useAppSettings();
-  const { user } = useCurrentUser();
+  const { user, loading: userLoading } = useCurrentUser();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -312,6 +312,13 @@ export function CouncilDashboard() {
   async function handleRun() {
     if (!prompt.trim() || isRunning) return;
     if (selectedIds.size === 0) return;
+    // Browsing is fully open, but running a chat needs an account — the
+    // API enforces this too, but redirecting straight to /login here is a
+    // much better experience than surfacing a "sign in" error banner.
+    if (!userLoading && !user) {
+      router.push(`/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`);
+      return;
+    }
     if (!hasApiKey) {
       openKeyModal();
       return;
@@ -391,42 +398,6 @@ export function CouncilDashboard() {
     if (workflow === "compare") return `Compare · ${selectedIds.size || "—"} model${selectedIds.size === 1 ? "" : "s"}`;
     return `Council · ${selectedIds.size || "—"} model${selectedIds.size === 1 ? "" : "s"} + ${judgeCount} judge${judgeCount === 1 ? "" : "s"}`;
   })();
-
-  // Chat is free for every signed-in account; Council and Compare need a
-  // subscription. `user` is null while /api/me is still loading, so this
-  // only locks once we positively know the account isn't subscribed —
-  // never flashes a paywall for a still-loading subscribed user.
-  const locked = (workflow === "council" || workflow === "compare") && !!user && !user.isSubscribed;
-
-  if (locked) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <div className="mb-4 flex justify-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent-text">
-            <Icon path={ICON_PATHS.lock} className="h-5 w-5" />
-          </span>
-        </div>
-        <h1 className="mb-2 font-heading text-[24px] leading-tight tracking-tight">
-          {activeWorkflowMeta.label} needs a subscription
-        </h1>
-        <p className="mb-6 text-[13px] text-muted-2">{activeWorkflowMeta.desc} — this workflow is part of the paid plan. Chat stays free.</p>
-        <div className="flex items-center justify-center gap-2">
-          <Link
-            href="/subscribe"
-            className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent hover:bg-accent-hover"
-          >
-            See what&rsquo;s included
-          </Link>
-          <button
-            onClick={() => setWorkflow("chat")}
-            className="rounded-full border border-border px-4 py-2 text-[13px] text-muted hover:text-foreground"
-          >
-            Back to Chat
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`mx-auto px-4 py-10 sm:px-6 ${state ? "max-w-[1400px]" : "max-w-[720px]"}`}>

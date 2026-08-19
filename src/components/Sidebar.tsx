@@ -15,24 +15,21 @@ function NavLink({
   active,
   icon,
   label,
-  locked,
 }: {
   href: string;
   active: boolean;
   icon: keyof typeof ICON_PATHS;
   label: string;
-  locked?: boolean;
 }) {
   return (
     <Link
-      href={locked ? "/subscribe" : href}
+      href={href}
       className={`flex items-center gap-2.5 border-l-2 py-2 pl-2.5 pr-2 text-[13px] transition-colors ${
         active ? "border-accent font-medium text-foreground" : "border-transparent text-muted hover:text-foreground"
       }`}
     >
       <Icon path={ICON_PATHS[icon]} className={`h-4 w-4 ${active ? "text-accent" : ""}`} />
       {label}
-      {locked && <Icon path={ICON_PATHS.lock} className="ml-auto h-3 w-3 text-muted-2" />}
     </Link>
   );
 }
@@ -82,20 +79,8 @@ export function Sidebar() {
       <nav className="flex flex-col gap-0.5">
         <NavLink href="/" active={onHome && !workflow} icon="home" label="Home" />
         <NavLink href="/?workflow=chat" active={onHome && workflow === "chat"} icon="chat" label="Chat" />
-        <NavLink
-          href="/?workflow=compare"
-          active={onHome && workflow === "compare"}
-          icon="compare"
-          label="Compare"
-          locked={!!user && !user.isSubscribed}
-        />
-        <NavLink
-          href="/?workflow=council"
-          active={onHome && workflow === "council"}
-          icon="council"
-          label="Council"
-          locked={!!user && !user.isSubscribed}
-        />
+        <NavLink href="/?workflow=compare" active={onHome && workflow === "compare"} icon="compare" label="Compare" />
+        <NavLink href="/?workflow=council" active={onHome && workflow === "council"} icon="council" label="Council" />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
       </nav>
 
@@ -196,7 +181,7 @@ export function Sidebar() {
             </span>
           ) : (
             <Link href="/subscribe" className="mt-1 block text-[10px] font-medium text-accent-text hover:underline">
-              Upgrade for Council + Compare
+              Upgrade to use paid models
             </Link>
           )}
         </div>

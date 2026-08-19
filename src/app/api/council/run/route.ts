@@ -51,21 +51,17 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400 });
   }
 
-  const workflow: Workflow = body.workflow ?? "council";
-
-  // Chat is free for every signed-in account; Council and Compare need a
-  // subscription. Enforced here (not just in the UI) since the UI gate is
+  // Browsing the site is fully open, but actually running a chat needs an
+  // account — checked here (not just in the UI) since a UI-only gate is
   // trivially bypassable by calling this endpoint directly.
-  if (workflow === "council" || workflow === "compare") {
-    const user = await getCurrentUser();
-    if (!user || !user.isSubscribed) {
-      return new Response(
-        JSON.stringify({ error: "Council and Compare need a subscription. Visit /subscribe to upgrade." }),
-        { status: 402 }
-      );
-    }
+  const user = await getCurrentUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Sign in to chat — it's free with any Google account." }), {
+      status: 401,
+    });
   }
 
+  const workflow: Workflow = body.workflow ?? "council";
   const evaluate = workflow === "council";
   const isSingleModelWorkflow = workflow === "chat";
 
@@ -104,6 +100,24 @@ export async function POST(req: NextRequest) {
       ? [explicitJudgeId]
       : selectJudges(catalog, selectedModelIds, judgeCount, await getTrendingModelIds())
     : [];
+
+  // Free models are usable by any signed-in account; a paid (non-$0) model
+  // anywhere in the lineup — debater or judge — needs a subscription.
+  if (!user.isSubscribed) {
+    const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+    const isFree = (id: string) => {
+      const m = catalogMap.get(id);
+      return !m || (m.pricing.prompt === 0 && m.pricing.completion === 0);
+    };
+    const hasPaidModel = [...selectedModelIds, ...judgeModelIds].some((id) => !isFree(id));
+    if (hasPaidModel) {
+      return new Response(
+        JSON.stringify({ error: "That includes a paid model — subscribe to use it, or pick a free model instead." }),
+        { status: 402 }
+      );
+    }
+  }
+
   const temperature = body.temperature ?? 0.7;
   const maxTokens = body.maxTokens ?? 1024;
   const systemPrompt = buildSystemPrompt(promptMode, body.customSystemPrompt);

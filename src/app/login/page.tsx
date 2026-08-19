@@ -43,7 +43,7 @@ function LoginForm() {
         </div>
         <h1 className="mb-1 text-[18px] font-semibold">Sign in to AI Model Council</h1>
         <p className="mb-6 text-[13px] text-muted-2">
-          Chat is free once you sign in. Council and Compare need a subscription.
+          Free models are free once you sign in. Paid models need a subscription.
         </p>
 
         <button

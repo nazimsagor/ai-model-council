@@ -6,9 +6,9 @@ import { useCurrentUser } from "@/lib/client/useCurrentUser";
 import { Icon, ICON_PATHS } from "@/components/icons";
 
 const FEATURES = [
-  "Council: every model debates, blind judging, one synthesized verdict",
-  "Compare: side-by-side answers from multiple models at once",
-  "Named combos (Quality leaders, Budget smart, Coding squad, and more)",
+  "Every paid model on OpenRouter — GPT, Claude, Gemini, Grok, and more",
+  "Use them in Chat, Compare, and Council — same free features, no lock",
+  "All free models stay free for every signed-in account, no subscription needed",
 ];
 
 export default function SubscribePage() {
@@ -17,9 +17,9 @@ export default function SubscribePage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="mb-1 text-[22px] font-semibold">Upgrade to Council + Compare</h1>
+      <h1 className="mb-1 text-[22px] font-semibold">Upgrade to paid models</h1>
       <p className="mb-6 text-[13px] text-muted-2">
-        Chat stays free for every signed-in account. These two workflows need a subscription.
+        Free models are free for every signed-in account. Paid models need a subscription.
       </p>
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">
@@ -32,7 +32,8 @@ export default function SubscribePage() {
           ))}
         </ul>
         <p className="mt-4 text-[11px] text-muted-2">
-          You still bring your own OpenRouter API key — a subscription unlocks the workflows, not model usage cost.
+          You still bring your own OpenRouter API key — a subscription unlocks which models you can pick, not model
+          usage cost itself.
         </p>
       </div>
 
