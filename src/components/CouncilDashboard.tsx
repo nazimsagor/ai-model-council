@@ -77,6 +77,27 @@ export function CouncilDashboard() {
     router.replace(w === "chat" ? "/" : `/?workflow=${w}`, { scroll: false });
   }
 
+  // A retried/duplicate OAuth callback (e.g. double-clicking "Continue with
+  // Google", or a stale tab replaying an old redirect) can leave Supabase's
+  // raw ?error=...&error_code=flow_state_already_used in the URL even when
+  // the session from the FIRST attempt already succeeded — the code is
+  // single-use, so only the retry fails. Harmless, but leaving Supabase's
+  // internal error string sitting in the address bar looks broken, so wipe
+  // it once mounted rather than showing it.
+  useEffect(() => {
+    if (!searchParams.get("error")) return;
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      params.delete("error");
+      params.delete("error_code");
+      params.delete("error_description");
+      const query = params.toString();
+      router.replace(query ? `${window.location.pathname}?${query}` : window.location.pathname, { scroll: false });
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isMultiModel = workflow === "compare" || workflow === "council";
 
   const [prompt, setPrompt] = useState("");
