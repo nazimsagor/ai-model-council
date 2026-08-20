@@ -50,10 +50,22 @@ export function Sidebar() {
   }
 
   useEffect(() => {
-    fetch("/api/history")
-      .then((r) => r.json())
-      .then((json) => setRecent((json.runs ?? []).slice(0, 5)))
-      .catch(() => setRecent([]));
+    function refetch() {
+      fetch("/api/history")
+        .then((r) => r.json())
+        .then((json) => setRecent((json.runs ?? []).slice(0, 5)))
+        .catch(() => setRecent([]));
+    }
+    refetch();
+    // A short delay so the server has time to create the run row — fired
+    // right when a run is submitted, not when it finishes, so the prompt
+    // shows up in Recent Work almost immediately instead of only once the
+    // chat settles.
+    function onRunStarted() {
+      setTimeout(refetch, 600);
+    }
+    window.addEventListener("council:run-started", onRunStarted);
+    return () => window.removeEventListener("council:run-started", onRunStarted);
   }, [pathname]);
 
   return (
