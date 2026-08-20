@@ -52,6 +52,12 @@ export function useCouncilRun() {
       signal: controller.signal,
     });
 
+    // By the time this response exists, the server has already created the
+    // run row (or rejected before doing so, in which case this is a
+    // harmless no-op) — a more reliable signal than firing on click, which
+    // races ahead of the server actually inserting anything.
+    window.dispatchEvent(new Event("council:run-started"));
+
     if (!res.ok || !res.body) {
       const body = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
       dispatch({ type: "event", event: { type: "error", message: body.error ?? "Council run failed to start." } });

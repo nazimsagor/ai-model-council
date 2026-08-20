@@ -356,10 +356,6 @@ export function CouncilDashboard() {
       return;
     }
     setConfirmOverBudget(false);
-    // Lets the sidebar refetch Recent Work right away instead of waiting
-    // for this run to finish streaming — the prompt should show up as soon
-    // as the attempt is submitted, not only once it settles.
-    window.dispatchEvent(new Event("council:run-started"));
     await run(
       {
         prompt,

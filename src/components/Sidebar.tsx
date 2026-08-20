@@ -57,15 +57,11 @@ export function Sidebar() {
         .catch(() => setRecent([]));
     }
     refetch();
-    // A short delay so the server has time to create the run row — fired
-    // right when a run is submitted, not when it finishes, so the prompt
-    // shows up in Recent Work almost immediately instead of only once the
-    // chat settles.
-    function onRunStarted() {
-      setTimeout(refetch, 600);
-    }
-    window.addEventListener("council:run-started", onRunStarted);
-    return () => window.removeEventListener("council:run-started", onRunStarted);
+    // Fired once the server has responded to a run request — by then the
+    // run row already exists, so the prompt shows up in Recent Work right
+    // after submitting instead of only once the chat finishes.
+    window.addEventListener("council:run-started", refetch);
+    return () => window.removeEventListener("council:run-started", refetch);
   }, [pathname]);
 
   return (
