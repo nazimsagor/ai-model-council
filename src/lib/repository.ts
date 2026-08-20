@@ -208,6 +208,10 @@ export async function listRuns(userId: string, limit = 50): Promise<RunListItem[
     .from("runs")
     .select("id, prompt, created_at, status, workflow, selected_model_ids, total_cost, summary_json")
     .eq("user_id", userId)
+    // A run still mid-stream ("running") isn't a settled result yet — only
+    // show it here once it resolves to complete or failed, so Recent
+    // Work/History don't display a prompt before its chat has finished.
+    .neq("status", "running")
     .order("created_at", { ascending: false })
     .limit(limit)
     .returns<
