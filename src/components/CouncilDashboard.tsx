@@ -1031,9 +1031,11 @@ export function CouncilDashboard() {
             <SingleResponseView
               modelId={state.order[0]}
               state={state.modelStates[state.order[0]]}
+              models={models}
               onSecondOpinion={workflow === "chat" ? () => setWorkflow("compare") : undefined}
               onCouncilReview={workflow === "chat" ? () => setWorkflow("council") : undefined}
               onOrchestrate={workflow === "chat" ? () => autoSelect(1) : undefined}
+              onRetry={handleRun}
             />
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
