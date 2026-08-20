@@ -987,6 +987,12 @@ export function CouncilDashboard() {
 
       {state && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-2xl bg-accent px-4 py-2.5 text-[13px] leading-snug text-on-accent shadow-sm">
+              {state.prompt}
+            </div>
+          </div>
+
           {workflow === "council" && (
             <JudgeStatus
               judgeModelId={judgeModelId}
