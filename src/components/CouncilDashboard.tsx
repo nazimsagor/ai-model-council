@@ -472,7 +472,11 @@ export function CouncilDashboard() {
                 handleRun();
               }
             }}
-            placeholder={`What do you want ${workflow === "chat" ? "one model" : "the council"} to answer?`}
+            placeholder={
+              workflow === "chat"
+                ? `Message ${selectedModelName ?? "a model"}…`
+                : "What do you want the council to answer?"
+            }
             rows={3}
             className="w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-[14px] outline-none"
           />
@@ -662,12 +666,13 @@ export function CouncilDashboard() {
             ) : (
               <button
                 onClick={openPicker}
-                className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[12px] text-muted transition-colors hover:text-foreground"
+                className="flex min-w-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-1.5 text-left text-[12px] transition-colors hover:border-border-strong"
               >
-                <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
-                <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-2">
-                  {isMultiModel ? "Running with" : "Answering with"}
-                </span>
+                {selectedModel ? (
+                  <ProviderIcon provider={selectedModel.provider} className="h-4 w-4" />
+                ) : (
+                  <Icon path={ICON_PATHS.sparkle} className="h-3.5 w-3.5 shrink-0 text-accent" />
+                )}
                 <span className="truncate font-medium text-foreground">
                   {selectedModelName ?? (autoBusy ? "Auto-selecting…" : "No model selected yet")}
                 </span>
@@ -685,8 +690,16 @@ export function CouncilDashboard() {
             >
               <Icon path={ICON_PATHS.globe} className="h-3.5 w-3.5" />
               Web
-              <span className={`ml-0.5 text-[10px] uppercase ${web ? "text-accent-text" : "text-muted-2"}`}>
-                {web ? "On" : "Off"}
+              <span
+                role="switch"
+                aria-checked={web}
+                style={{ backgroundColor: web ? "var(--accent)" : "var(--border-strong)" }}
+                className="relative ml-0.5 h-4 w-7 shrink-0 overflow-hidden rounded-full transition-colors"
+              >
+                <span
+                  style={{ left: web ? 14 : 2 }}
+                  className="absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-[left]"
+                />
               </span>
             </button>
 
