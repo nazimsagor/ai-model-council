@@ -43,7 +43,7 @@ export async function initSession(params: InitSessionParams): Promise<{ GatewayP
     cancel_url: params.cancelUrl,
     ipn_url: params.ipnUrl,
     shipping_method: "NO",
-    product_name: "AI Model Council subscription",
+    product_name: "AI Model Council lifetime access",
     product_category: "Digital Subscription",
     product_profile: "non-physical-goods",
     cus_name: params.customerName,

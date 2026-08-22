@@ -16,11 +16,12 @@ export interface CurrentUser {
  *  GitHub, email/password) uniformly instead of relying on each auth flow
  *  remembering to call something after the fact.
  *
- *  Subscription status is derived from subscription_expires_at, not read
- *  off is_subscribed directly — that's what lets a subscription lapse on
- *  its own after 30 days with no cron job. is_subscribed is only consulted
- *  as a fallback for accounts granted a subscription before this column
- *  existed (expires_at null). */
+ *  Access is a one-time lifetime purchase, not a recurring plan: a grant
+ *  (paid or via a free coupon) sets is_subscribed true and leaves
+ *  subscription_expires_at null forever, which is what "lifetime" means
+ *  here. expires_at only matters if it's ever set to a real date — kept
+ *  around in case a time-limited grant is needed later — in which case it
+ *  overrides is_subscribed once it's in the past. */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const authClient = await createSupabaseServerClient();
   const {
