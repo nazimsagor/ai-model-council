@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCurrentUser } from "@/lib/client/useCurrentUser";
 import { Icon, ICON_PATHS } from "@/components/icons";
+
+const MONTHLY_PRICE_BDT = 499;
 
 const FEATURES = [
   "Every paid model on OpenRouter — GPT, Claude, Gemini, Grok, and more",
@@ -11,9 +14,53 @@ const FEATURES = [
   "All free models stay free for every signed-in account, no subscription needed",
 ];
 
+function StatusBanner() {
+  const params = useSearchParams();
+  const status = params.get("status");
+  if (!status) return null;
+
+  if (status === "success") {
+    return (
+      <p className="mb-6 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-[13px] text-success">
+        Payment received — your subscription is active.
+      </p>
+    );
+  }
+  if (status === "fail") {
+    return (
+      <p className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-danger">
+        Payment failed. No charge was made — try again below.
+      </p>
+    );
+  }
+  if (status === "cancel") {
+    return (
+      <p className="mb-6 rounded-lg border border-border bg-surface px-4 py-3 text-[13px] text-muted-2">
+        Payment cancelled. No charge was made.
+      </p>
+    );
+  }
+  return null;
+}
+
 export default function SubscribePage() {
   const { user, loading } = useCurrentUser();
-  const [requested, setRequested] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function startCheckout() {
+    setError(null);
+    setStarting(true);
+    try {
+      const res = await fetch("/api/subscribe/init", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not start payment");
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start payment");
+      setStarting(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
@@ -22,7 +69,12 @@ export default function SubscribePage() {
         Free models are free for every signed-in account. Paid models need a subscription.
       </p>
 
+      <Suspense fallback={null}>
+        <StatusBanner />
+      </Suspense>
+
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">
+        <p className="mb-3 text-[15px] font-semibold">৳{MONTHLY_PRICE_BDT} / month</p>
         <ul className="space-y-2.5">
           {FEATURES.map((f) => (
             <li key={f} className="flex items-start gap-2 text-[13px] text-foreground">
@@ -33,7 +85,7 @@ export default function SubscribePage() {
         </ul>
         <p className="mt-4 text-[11px] text-muted-2">
           You still bring your own OpenRouter API key — a subscription unlocks which models you can pick, not model
-          usage cost itself.
+          usage cost itself. Billed via card, bKash, Nagad, or Rocket through SSLCommerz.
         </p>
       </div>
 
@@ -46,26 +98,25 @@ export default function SubscribePage() {
         </p>
       )}
 
-      {!loading && user && (
-        <div className="rounded-xl border border-border bg-background p-4">
-          {requested ? (
-            <p className="text-[13px] text-success">
-              Thanks — we&rsquo;ll reach out at {user.email} once payment is live.
-            </p>
-          ) : (
-            <>
-              <p className="mb-3 text-[13px] text-muted-2">
-                Payment isn&rsquo;t connected yet, so subscriptions aren&rsquo;t purchasable this moment. Let us know
-                you&rsquo;re interested and we&rsquo;ll follow up the moment it&rsquo;s live.
-              </p>
-              <button
-                onClick={() => setRequested(true)}
-                className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent hover:bg-accent-hover"
-              >
-                Notify me when it&rsquo;s ready
-              </button>
-            </>
+      {!loading && user && user.isSubscribed && (
+        <div className="rounded-xl border border-success/30 bg-success/10 p-4 text-[13px] text-success">
+          You&rsquo;re subscribed
+          {user.subscriptionExpiresAt && (
+            <> — renews or expires {new Date(user.subscriptionExpiresAt).toLocaleDateString()}.</>
           )}
+        </div>
+      )}
+
+      {!loading && user && !user.isSubscribed && (
+        <div className="rounded-xl border border-border bg-background p-4">
+          {error && <p className="mb-3 text-[13px] text-danger">{error}</p>}
+          <button
+            onClick={startCheckout}
+            disabled={starting}
+            className="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-60"
+          >
+            {starting ? "Starting checkout…" : `Subscribe — ৳${MONTHLY_PRICE_BDT}/month`}
+          </button>
         </div>
       )}
     </div>
