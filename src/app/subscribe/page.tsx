@@ -143,7 +143,7 @@ function RedeemCard() {
       // Full reload, not router.push: useCurrentUser only fetches /api/me on
       // mount, so a client-side nav would still show the pre-redeem state.
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.href = "/subscribe?status=success";
+      window.location.href = "/";
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not redeem code");
     } finally {
