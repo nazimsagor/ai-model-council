@@ -1,4 +1,4 @@
--- Run this in the Supabase SQL editor (Dashboard → SQL Editor) for this project.
+-- Run this in the Supabase SQL editor (Dashboard -> SQL Editor) for this project.
 
 alter table public.profiles
   add column if not exists subscription_expires_at timestamptz;
