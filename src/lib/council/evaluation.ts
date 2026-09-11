@@ -1,5 +1,6 @@
 import { chatCompletion } from "../openrouter";
 import { extractJson } from "./json";
+import { budgetCandidatePool, costAwareModelScore, isAutoPickCandidate, modelCostPerMillion } from "./modelSelection";
 import {
   EVALUATION_DIMENSIONS,
   type EvaluationScores,
@@ -8,15 +9,9 @@ import {
   type OpenRouterModel,
 } from "../types";
 
-/** Picks judge models, preferring strong models that are NOT part of the
- *  council being evaluated (so a model never judges itself), and preferring
- *  provider diversity when multiple judges are requested.
- *
- *  Scoring prefers real current OpenRouter usage (`trendingIds`, ordered
- *  most- to least-used this week) over any hardcoded list of model names —
- *  a hardcoded "flagship" list inevitably goes stale as new models ship,
- *  which is exactly what happened here before. Reasoning/tool support from
- *  the live catalog is the tiebreak/fallback so this never goes stale again. */
+/** Picks judge models, preferring lower-cost capable models that are NOT part
+ *  of the council being evaluated. Trending data is only a small tie-break;
+ *  judge defaults should not quietly jump to premium models. */
 export function selectJudges(
   catalog: OpenRouterModel[],
   councilModelIds: string[],
@@ -24,17 +19,21 @@ export function selectJudges(
   trendingIds: string[] = []
 ): string[] {
   const excluded = new Set(councilModelIds);
-  const candidates = catalog.filter((m) => !excluded.has(m.id));
+  const baseCandidates = catalog.filter((m) => !excluded.has(m.id) && isAutoPickCandidate(m));
+  const candidates = budgetCandidatePool(baseCandidates, Math.max(count, 1));
   const trendRank = new Map(trendingIds.map((id, i) => [id, trendingIds.length - i]));
 
   const scored = candidates.map((model) => {
-    let score = trendRank.get(model.id) ?? 0;
-    score += model.capabilities.reasoning ? 3 : 0;
-    score += model.capabilities.tools ? 1 : 0;
-    score += Math.min(model.contextLength / 500_000, 2);
+    let score = costAwareModelScore(model);
+    score += Math.min((trendRank.get(model.id) ?? 0) / Math.max(trendingIds.length, 1), 1);
     return { model, score };
   });
-  scored.sort((a, b) => b.score - a.score);
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      modelCostPerMillion(a.model) - modelCostPerMillion(b.model) ||
+      b.model.contextLength - a.model.contextLength
+  );
 
   const selected: string[] = [];
   const perProvider = new Map<string, number>();

@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Signing in is only required to actually run a chat (enforced in
 // /api/council/run, not here), and only paid models additionally require a
 // subscription. This proxy's only remaining job is bouncing an
-// already-signed-in visitor away from /login back into the app.
+// already-signed-in visitor away from /login back into the app workspace.
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next({ request: req });
 
@@ -30,7 +30,7 @@ export async function proxy(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/council", req.url));
   }
 
   return res;

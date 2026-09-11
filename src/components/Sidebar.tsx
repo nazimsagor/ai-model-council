@@ -66,13 +66,13 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface px-3 py-4">
-      <Link href="/" className="flex items-center gap-2 px-1">
+      <Link href="/council" className="flex items-center gap-2 px-1">
         <LogoMark className="h-6 w-6 text-foreground" />
         <span className="text-[14px] font-semibold tracking-tight">Model Council</span>
       </Link>
 
       <Link
-        href="/"
+        href="/council"
         onClick={() => window.dispatchEvent(new Event("council:new"))}
         className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
       >
@@ -81,7 +81,6 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col gap-0.5">
-        <NavLink href="/" active={pathname === "/"} icon="home" label="Home" />
         <NavLink href="/chat" active={pathname === "/chat"} icon="chat" label="Chat" />
         <NavLink href="/compare" active={pathname === "/compare"} icon="compare" label="Compare" />
         <NavLink href="/council" active={pathname === "/council"} icon="council" label="Council" />

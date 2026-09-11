@@ -1,4 +1,11 @@
 import type { OpenRouterModel } from "../types";
+import {
+  budgetCandidatePool,
+  costAwareModelScore,
+  isAutoPickCandidate,
+  modelCostPerMillion,
+  sortByCostAwareScore,
+} from "./modelSelection";
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   coding: [
@@ -93,19 +100,26 @@ export function autoSelectModels(
   const hints = CATEGORY_HINTS[category] ?? [];
 
   const pool = requiresVision ? catalog.filter((m) => m.capabilities.vision) : catalog;
+  const candidates = budgetCandidatePool(pool, Math.min(count, Math.max(pool.length, 1)));
+  const sourcePool = candidates.length > 0 ? candidates : pool.filter(isAutoPickCandidate);
 
-  const scored = pool.map((model) => {
+  const scored = (sourcePool.length > 0 ? sourcePool : pool).map((model) => {
     const idLower = model.id.toLowerCase();
-    let score = 0;
+    let score = costAwareModelScore(model);
     for (const hint of hints) if (idLower.includes(hint)) score += 3;
-    for (const hint of FLAGSHIP_HINTS) if (idLower.includes(hint)) score += 2;
+    for (const hint of FLAGSHIP_HINTS) if (idLower.includes(hint)) score += 1;
     if (model.capabilities.reasoning && (category === "math" || category === "research")) score += 2;
     if (model.capabilities.tools && category === "coding") score += 1;
-    score += Math.min(model.contextLength / 200_000, 1); // mild bonus for long context
+    score += Math.min(model.contextLength / 200_000, 1);
     return { model, score };
   });
 
-  scored.sort((a, b) => b.score - a.score);
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      modelCostPerMillion(a.model) - modelCostPerMillion(b.model) ||
+      b.model.contextLength - a.model.contextLength
+  );
 
   const selected: string[] = [];
   const perProvider = new Map<string, number>();
@@ -129,8 +143,8 @@ export function autoSelectModels(
 
   const reason =
     category === "general"
-      ? "No strong topic signal detected — selected a diverse, well-rounded set of flagship models."
-      : `Your prompt appears to be ${category.toUpperCase()}${matched.length ? ` (matched: ${matched.slice(0, 3).join(", ")})` : ""}. Prioritized models suited to this kind of task.`;
+      ? "No strong topic signal detected — selected a diverse, lower-cost set of reliable models."
+      : `Your prompt appears to be ${category.toUpperCase()}${matched.length ? ` (matched: ${matched.slice(0, 3).join(", ")})` : ""}. Prioritized lower-cost models suited to this kind of task.`;
 
   return { category, reason, modelIds: selected };
 }
@@ -141,69 +155,27 @@ export interface CouncilRecommendation {
   source: "trending" | "heuristic";
 }
 
-// Stable list of major-lab *providers* (not model names — provider slugs
-// rarely change even as individual models ship/retire) so the default
-// Council panel is built from recognizable labs rather than whichever
-// small/regional provider happens to be topping this week's raw token
-// volume. Each provider's actual model is still picked dynamically from
-// the live catalog below, so this never goes stale.
-//
-// Anthropic is deliberately excluded from this list and used as the
-// preferred judge instead — matching the reference panel layout where the
-// Claude card carries the judge crown rather than debating. (Claude Opus 5
-// still debates separately — see findClaudeOpus5 below — so Anthropic
-// intentionally appears twice: once judging, once debating.)
 const JUDGE_PROVIDER = "anthropic";
-const MAJOR_LAB_PROVIDERS = ["openai", "google", "x-ai", "meta-llama", "mistralai", "deepseek", "qwen"];
+const COST_CONSCIOUS_PROVIDER_ORDER = [
+  "openai",
+  "google",
+  "deepseek",
+  "qwen",
+  "meta-llama",
+  "mistralai",
+  "anthropic",
+  "x-ai",
+];
 
-/** Pinned per explicit request: Claude Opus 5 debates alongside the other
- *  major labs specifically — not "Anthropic's algorithmic best" (which
- *  resolves to a pricier Fable/Fast variant instead, since capabilityScore's
- *  price tie-break caps out below Opus 5's own price). Matched by id
- *  substring since a specific named generation, not "current best", is what
- *  was asked for. */
-function findClaudeOpus5(catalog: OpenRouterModel[]): string | null {
-  const candidates = catalog.filter(
-    (m) => m.provider === "anthropic" && /opus-5/i.test(m.id) && !m.id.includes(":batch")
-  );
+/** The best current lower-cost interactive model for one provider, from real
+ *  catalog signals only. Manual picking still exposes the full catalog; this
+ *  is only for defaults and automatic selection. */
+function bestBudgetModelForProvider(provider: string, catalog: OpenRouterModel[]): string | null {
+  const providerModels = catalog.filter((m) => m.provider === provider);
+  const budgetPool = budgetCandidatePool(providerModels, 1);
+  const candidates = budgetPool.length > 0 ? budgetPool : providerModels.filter(isAutoPickCandidate);
   if (candidates.length === 0) return null;
-  const plain = candidates.find((m) => !/-fast$/i.test(m.id));
-  return (plain ?? candidates[0]).id;
-}
-
-function capabilityScore(model: OpenRouterModel): number {
-  return (
-    (model.capabilities.reasoning ? 3 : 0) +
-    (model.capabilities.tools ? 1 : 0) +
-    Math.min(model.contextLength / 500_000, 2) +
-    // Gentle tie-break, not a primary signal: within one lab, the pricier
-    // tier is consistently the more capable one (Opus > Sonnet > Haiku,
-    // Pro > Flash), so this nudges ties toward the premium variant.
-    Math.min((model.pricing.completion * 1_000_000) / 50, 1)
-  );
-}
-
-// Excluded from auto-pick despite scoring well on paper: openai/gpt-5.4-pro
-// was observed via production logs to consistently time out (zero streamed
-// output for 40s+, across three separate timeout configurations tried this
-// session) — a real reliability issue on OpenRouter right now, not a bug in
-// our request handling. gpt-5.5-pro ties it exactly on capabilityScore (same
-// $180/M "Pro" tier), so excluding only gpt-5.4-pro would just swap in its
-// untested twin in the same risk category — both are excluded together so
-// the pick actually lands on a different, non-"Pro" tier. Revisit if the
-// underlying reliability issue changes.
-const UNRELIABLE_MODEL_IDS = new Set(["openai/gpt-5.4-pro", "openai/gpt-5.5-pro"]);
-
-/** The best current interactive model for one provider, by real capability
- *  signals (reasoning/tools/context) — never a hardcoded model id, so a
- *  provider's pick automatically follows whatever they currently ship
- *  (aside from UNRELIABLE_MODEL_IDS, an explicit reliability override). */
-function bestModelForProvider(provider: string, catalog: OpenRouterModel[]): string | null {
-  const candidates = catalog.filter(
-    (m) => m.provider === provider && !m.id.includes(":batch") && !UNRELIABLE_MODEL_IDS.has(m.id)
-  );
-  if (candidates.length === 0) return null;
-  return candidates.sort((a, b) => capabilityScore(b) - capabilityScore(a))[0].id;
+  return sortByCostAwareScore(candidates)[0].id;
 }
 
 /** Picks up to `n` models from `orderedIds`, at most one per provider, so a
@@ -250,78 +222,54 @@ function pickJudge(
 }
 
 /** Recommends a default Council lineup: `count` debaters plus one separate
- *  judge. Prefers a stable panel of major-lab providers (OpenAI, Google,
- *  xAI, Meta, Mistral, DeepSeek, Qwen) plus Claude Opus 5 as debaters, with
- *  a different Anthropic model (its current algorithmic best) as the judge
- *  — each lab's *current* best model, picked dynamically, not a hardcoded
- *  name (Opus 5 excepted, per explicit request), since a recognizable
- *  default panel reads better than whichever provider happens to top this
- *  week's raw token volume. Falls back to live OpenRouter trending data if
- *  the catalog doesn't have enough major-lab coverage (e.g. free-only mode
- *  excludes one of them), then to a capability-only heuristic (reasoning +
- *  tools + context length — still no hardcoded model names) as a last
- *  resort. */
+ *  judge. The default is now cost-conscious: it prefers lower-cost reliable
+ *  provider picks from the live catalog, keeps provider diversity, and only
+ *  falls back to broader catalog/trending candidates if cheap coverage is too
+ *  small. */
 export function buildCouncilRecommendation(
   catalog: OpenRouterModel[],
   trendingIds: string[],
   count: number
 ): CouncilRecommendation {
   const catalogMap = new Map(catalog.map((m) => [m.id, m]));
-  const preferredJudge = bestModelForProvider(JUDGE_PROVIDER, catalog);
-
-  const majorLabPicks = MAJOR_LAB_PROVIDERS.map((p) => bestModelForProvider(p, catalog)).filter(
+  const preferredJudge = bestBudgetModelForProvider(JUDGE_PROVIDER, catalog);
+  const debaterProviderPicks = COST_CONSCIOUS_PROVIDER_ORDER.filter((p) => p !== JUDGE_PROVIDER).map((p) =>
+    bestBudgetModelForProvider(p, catalog)
+  ).filter(
     (id): id is string => id !== null
   );
-  const opus5 = findClaudeOpus5(catalog);
-  // Opus 5 goes first (not appended) so it survives truncation for smaller
-  // council sizes (5/7-member) instead of only ever showing up at 8+.
-  const pinnedPicks = opus5 && !majorLabPicks.includes(opus5) ? [opus5, ...majorLabPicks] : majorLabPicks;
 
-  if (pinnedPicks.length >= count) {
-    const debaters = pinnedPicks.slice(0, count);
+  if (debaterProviderPicks.length >= count) {
+    const debaters = debaterProviderPicks.slice(0, count);
     const judgeModelId =
       (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
-      pinnedPicks.slice(count).find((id) => !debaters.includes(id)) ??
-      pickJudge(trendingIds.length > 0 ? trendingIds : pinnedPicks, catalogMap, debaters);
-    return { modelIds: debaters, judgeModelId, source: "trending" };
+      debaterProviderPicks.slice(count).find((id) => !debaters.includes(id)) ??
+      pickJudge(sortByCostAwareScore(budgetCandidatePool(catalog, 1)).map((m) => m.id), catalogMap, debaters);
+    return { modelIds: debaters, judgeModelId, source: "heuristic" };
   }
 
-  if (trendingIds.length > 0) {
-    // Backfill any remaining slots (beyond what major-lab coverage gave us)
-    // with real trending picks from other providers.
-    const debaters = pickOnePerProvider(
-      [...pinnedPicks, ...trendingIds],
-      catalogMap,
-      count,
-      new Set()
-    );
-    if (debaters.length === count) {
-      const judgeModelId =
-        (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
-        pickJudge(trendingIds, catalogMap, debaters);
-      return { modelIds: debaters, judgeModelId, source: "trending" };
-    }
+  const budgetOrderedIds = sortByCostAwareScore(budgetCandidatePool(catalog, count)).map((m) => m.id);
+  const budgetIdSet = new Set(budgetOrderedIds);
+  const budgetTrendingIds = trendingIds.filter((id) => budgetIdSet.has(id));
+  const debaters = pickOnePerProvider(
+    [...debaterProviderPicks, ...budgetOrderedIds, ...budgetTrendingIds],
+    catalogMap,
+    count,
+    new Set()
+  );
+  if (debaters.length === count) {
+    const judgeModelId =
+      (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
+      pickJudge([...budgetOrderedIds, ...budgetTrendingIds], catalogMap, debaters);
+    return { modelIds: debaters, judgeModelId, source: "heuristic" };
   }
 
-  // Fallback: no hardcoded model names, just real capability signals from
-  // the live catalog — reasoning + tool support + longer context, so this
-  // never goes stale the way a hardcoded name list does.
-  const scored = catalog
-    .map((model) => ({
-      model,
-      score:
-        (model.capabilities.reasoning ? 3 : 0) +
-        (model.capabilities.tools ? 1 : 0) +
-        Math.min(model.contextLength / 500_000, 2),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .map((s) => s.model.id);
-
-  const debaters = pickOnePerProvider(scored, catalogMap, count, new Set());
+  const scored = sortByCostAwareScore(catalog.filter(isAutoPickCandidate)).map((model) => model.id);
+  const fallbackDebaters = pickOnePerProvider(scored, catalogMap, count, new Set());
   const judgeModelId =
-    (preferredJudge && !debaters.includes(preferredJudge) ? preferredJudge : undefined) ??
-    pickJudge(scored, catalogMap, debaters);
-  return { modelIds: debaters, judgeModelId, source: "heuristic" };
+    (preferredJudge && !fallbackDebaters.includes(preferredJudge) ? preferredJudge : undefined) ??
+    pickJudge(scored, catalogMap, fallbackDebaters);
+  return { modelIds: fallbackDebaters, judgeModelId, source: "heuristic" };
 }
 
 export const COUNCIL_MODE_COUNTS: Record<string, number> = {

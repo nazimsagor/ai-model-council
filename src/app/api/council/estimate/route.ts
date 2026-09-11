@@ -14,10 +14,15 @@ export async function POST(req: NextRequest) {
     const selectedModelIds: string[] = body.selectedModelIds ?? [];
     const maxTokens: number = body.maxTokens ?? 1024;
     const judgeCount: number = body.judgeCount ?? 1;
+    const requestedJudgeModelId: string | undefined = body.judgeModelId;
 
     const catalog = await listModels();
     const catalogMap = new Map(catalog.map((m) => [m.id, m]));
-    const judgeModelIds = selectJudges(catalog, selectedModelIds, judgeCount);
+    const explicitJudgeId =
+      requestedJudgeModelId && catalogMap.has(requestedJudgeModelId) && !selectedModelIds.includes(requestedJudgeModelId)
+        ? requestedJudgeModelId
+        : undefined;
+    const judgeModelIds = explicitJudgeId ? [explicitJudgeId] : selectJudges(catalog, selectedModelIds, judgeCount);
 
     const perModel = selectedModelIds.map((id) => {
       const model = catalogMap.get(id);

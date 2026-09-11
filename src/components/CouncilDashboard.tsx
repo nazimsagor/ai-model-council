@@ -44,11 +44,11 @@ const PROMPT_MODES: { id: PromptMode; label: string }[] = [
 const BUDGETS = [0.5, 1, 5, 10];
 
 const COMBO_MODEL_COUNT = 3;
+const DEFAULT_COMPARE_COMBO = "budget-smart";
 
 // Real paths (/chat, /compare, /council) so each workflow has its own
-// shareable URL, mirroring getmulti.ai's layout. "/" still defaults to chat
-// for the plain-Home nav entry, and the legacy ?workflow= query param is
-// still honored as a fallback so old links keep working.
+// shareable URL, mirroring getmulti.ai's layout. The legacy ?workflow=
+// query param is still honored as a fallback so old links keep working.
 const PATH_WORKFLOW: Record<string, Workflow> = { "/chat": "chat", "/compare": "compare", "/council": "council" };
 
 const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: string }> = {
@@ -116,7 +116,7 @@ export function CouncilDashboard() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [judgeModelId, setJudgeModelId] = useState<string | null>(null);
   const [recommendationSource, setRecommendationSource] = useState<"trending" | "heuristic" | null>(null);
-  const [combo, setCombo] = useState<string>("quality-leaders");
+  const [combo, setCombo] = useState<string>(DEFAULT_COMPARE_COMBO);
   const [comboMenuOpen, setComboMenuOpen] = useState(false);
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
 
@@ -166,7 +166,7 @@ export function CouncilDashboard() {
     setAutoReason(null);
     setJudgeModelId(null);
     setRecommendationSource(null);
-    setCombo("quality-leaders");
+    setCombo(DEFAULT_COMPARE_COMBO);
   }, [workflow]);
 
   // "Use free models" is a hard constraint — flipping it after Council/
@@ -296,7 +296,12 @@ export function CouncilDashboard() {
       fetch("/api/council/estimate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedModelIds: ids, maxTokens, judgeCount: workflow === "council" ? judgeCount : 0 }),
+        body: JSON.stringify({
+          selectedModelIds: ids,
+          maxTokens,
+          judgeCount: workflow === "council" ? judgeCount : 0,
+          judgeModelId: workflow === "council" ? (judgeModelId ?? undefined) : undefined,
+        }),
       })
         .then((r) => r.json())
         .then((json) => {
@@ -305,7 +310,7 @@ export function CouncilDashboard() {
         .catch(() => {});
     }, 350);
     return () => clearTimeout(timer);
-  }, [selectedIds, maxTokens, judgeCount, workflow]);
+  }, [selectedIds, maxTokens, judgeCount, judgeModelId, workflow]);
 
   const effectiveBudget = budget ?? (customBudget ? Number(customBudget) : null);
   const overBudget =
@@ -817,7 +822,7 @@ export function CouncilDashboard() {
                         <span className="ml-1.5 text-muted-2">
                           {recommendationSource === "trending"
                             ? "· recommended from live OpenRouter usage"
-                            : "· recommended by capability"}
+                            : "· cost-aware recommendation"}
                         </span>
                       </div>
                     </div>

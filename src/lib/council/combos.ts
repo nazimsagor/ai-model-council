@@ -1,4 +1,10 @@
 import type { OpenRouterModel } from "../types";
+import {
+  budgetCandidatePool,
+  costAwareModelScore,
+  isAutoPickCandidate,
+  modelCostPerMillion,
+} from "./modelSelection";
 
 export interface ComboDef {
   id: string;
@@ -41,6 +47,15 @@ function capabilityScore(m: OpenRouterModel): number {
   );
 }
 
+function costAwareSort(models: OpenRouterModel[]): OpenRouterModel[] {
+  return [...models].sort(
+    (a, b) =>
+      costAwareModelScore(b) - costAwareModelScore(a) ||
+      modelCostPerMillion(a) - modelCostPerMillion(b) ||
+      b.contextLength - a.contextLength
+  );
+}
+
 /** Picks up to `count` models from an already-sorted list, at most one per
  *  provider, so a combo isn't secretly 3 variants of the same lab's model. */
 function onePerProvider(sorted: OpenRouterModel[], count: number): string[] {
@@ -61,13 +76,11 @@ function onePerProvider(sorted: OpenRouterModel[], count: number): string[] {
  *  each lab currently ships. Falls back to "quality-leaders" ranking for an
  *  unrecognized id. */
 export function resolveCombo(comboId: string, catalog: OpenRouterModel[], count: number): string[] {
-  const usable = catalog.filter((m) => !m.id.includes(":batch"));
+  const usable = catalog.filter(isAutoPickCandidate);
 
   switch (comboId) {
     case "budget-smart": {
-      const sorted = [...usable]
-        .filter((m) => m.pricing.completion > 0)
-        .sort((a, b) => a.pricing.completion - b.pricing.completion || capabilityScore(b) - capabilityScore(a));
+      const sorted = costAwareSort(budgetCandidatePool(usable, count));
       return onePerProvider(sorted, count);
     }
     case "fast-lane": {

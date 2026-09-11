@@ -23,8 +23,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Model Council",
-  description: "Ask one question. Let the world's strongest AI models debate it.",
+  title: {
+    default: "AI Model Council",
+    template: "%s | AI Model Council",
+  },
+  description: "One prompt for chat, comparison, auto-picked models, and judged AI council verdicts.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
