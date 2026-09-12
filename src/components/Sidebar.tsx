@@ -85,6 +85,7 @@ export function Sidebar() {
         <NavLink href="/compare" active={pathname === "/compare"} icon="compare" label="Compare" />
         <NavLink href="/council" active={pathname === "/council"} icon="council" label="Council" />
         <NavLink href="/models" active={pathname.startsWith("/models")} icon="models" label="Models" />
+        {user?.isAdmin && <NavLink href="/admin" active={pathname === "/admin"} icon="lock" label="Admin" />}
       </nav>
 
       <label

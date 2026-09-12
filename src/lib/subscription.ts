@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { createSupabaseServerClient } from "./supabase/authServer";
+import { isAdminEmail } from "./adminAccess";
 
 export interface CurrentUser {
   id: string;
@@ -7,6 +8,7 @@ export interface CurrentUser {
   name: string | null;
   isSubscribed: boolean;
   subscriptionExpiresAt: string | null;
+  isAdmin: boolean;
 }
 
 /** Reads the current auth session (if any) plus that user's profile and
@@ -44,5 +46,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name: profile?.name ?? null,
     isSubscribed,
     subscriptionExpiresAt: expiresAt,
+    isAdmin: isAdminEmail(user.email),
   };
 }
