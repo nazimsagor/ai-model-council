@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 function toMarkdown(run: CouncilRun): string {
   const lines: string[] = [];
-  lines.push(`# AI Model Council Report`);
+  lines.push(`# Bohumot AI Report`);
   lines.push("");
   lines.push(`**Prompt:** ${run.prompt}`);
   lines.push(`**Date:** ${run.createdAt}`);

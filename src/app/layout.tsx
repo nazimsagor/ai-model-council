@@ -24,10 +24,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Model Council",
-    template: "%s | AI Model Council",
+    default: "Bohumot AI",
+    template: "%s | Bohumot AI",
   },
-  description: "One prompt for chat, comparison, auto-picked models, and judged AI council verdicts.",
+  description: "One prompt for chat, comparison, auto-picked models, and judged AI council verdicts with Bohumot AI.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

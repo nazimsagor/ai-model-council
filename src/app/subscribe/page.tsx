@@ -8,7 +8,7 @@ import { Icon, ICON_PATHS } from "@/components/icons";
 import { LIFETIME_PRICE_BDT } from "@/lib/pricing";
 
 const FEATURES = [
-  "Lifetime access to AI Model Council",
+  "Lifetime access to Bohumot AI",
   "Bring your own OpenRouter key",
   "Chat, Compare, and Council — every workflow",
   "300+ models via OpenRouter, always current",
@@ -195,7 +195,7 @@ export default function SubscribePage() {
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-8 text-center">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-accent-text">Lifetime access</p>
-        <h1 className="mb-2 text-[32px] font-bold leading-tight">Get AI Model Council for life.</h1>
+        <h1 className="mb-2 text-[32px] font-bold leading-tight">Get Bohumot AI for life.</h1>
         <p className="mx-auto max-w-md text-[13px] text-muted-2">
           No subscription, no seats, no per-answer fees. You bring your own OpenRouter key, so model usage is billed
           straight to you at cost.

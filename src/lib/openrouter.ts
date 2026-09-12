@@ -6,7 +6,7 @@ function headers(apiKey?: string): Record<string, string> {
   const h: Record<string, string> = {
     "Content-Type": "application/json",
     "HTTP-Referer": "http://localhost:3000",
-    "X-Title": "AI Model Council",
+    "X-Title": "Bohumot AI",
   };
   if (apiKey) h.Authorization = `Bearer ${apiKey}`;
   return h;

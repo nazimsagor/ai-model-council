@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
-import { LogoMark } from "@/components/LogoMark";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -132,9 +132,8 @@ function LoginForm() {
   return (
     <div className="flex h-full min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-[380px] rounded-2xl border border-border bg-surface p-7 shadow-lg">
-        <div className="mb-6 flex items-center gap-2">
-          <LogoMark className="h-6 w-6 text-foreground" />
-          <span className="text-[16px] font-semibold tracking-tight">Model Council</span>
+        <div className="mb-6 flex items-center">
+          <BrandLogo className="h-10 w-[170px]" priority />
         </div>
 
         {mode !== "forgot" && (
@@ -173,9 +172,9 @@ function LoginForm() {
         </h1>
         <p className="mb-6 text-[13px] text-muted-2">
           {mode === "signin"
-            ? "Sign in to access your Model Council workspace."
+            ? "Sign in to access your Bohumot AI workspace."
             : mode === "signup"
-              ? "Create an account to start using Model Council."
+              ? "Create an account to start using Bohumot AI."
               : "Enter your email and we'll send you a reset link."}
         </p>
 

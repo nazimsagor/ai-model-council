@@ -8,7 +8,7 @@ import { useAppSettings } from "@/lib/client/appSettings";
 import { useCurrentUser } from "@/lib/client/useCurrentUser";
 import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
 import { Icon, ICON_PATHS } from "@/components/icons";
-import { LogoMark } from "@/components/LogoMark";
+import { BrandLogo } from "@/components/BrandLogo";
 
 function NavLink({
   href,
@@ -66,9 +66,8 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface px-3 py-4">
-      <Link href="/council" className="flex items-center gap-2 px-1">
-        <LogoMark className="h-6 w-6 text-foreground" />
-        <span className="text-[14px] font-semibold tracking-tight">Model Council</span>
+      <Link href="/council" className="flex items-center px-1" aria-label="Bohumot AI workspace">
+        <BrandLogo className="h-8 w-[150px]" priority />
       </Link>
 
       <Link

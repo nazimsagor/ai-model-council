@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
-import { LogoMark } from "@/components/LogoMark";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -33,9 +33,8 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex h-full min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-[380px] rounded-2xl border border-border bg-surface p-7 shadow-lg">
-        <div className="mb-6 flex items-center gap-2">
-          <LogoMark className="h-6 w-6 text-foreground" />
-          <span className="text-[16px] font-semibold tracking-tight">Model Council</span>
+        <div className="mb-6 flex items-center">
+          <BrandLogo className="h-10 w-[170px]" priority />
         </div>
 
         {done ? (

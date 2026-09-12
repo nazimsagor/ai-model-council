@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, ICON_PATHS } from "@/components/icons";
-import { LogoMark } from "@/components/LogoMark";
+import { BrandLogo } from "@/components/BrandLogo";
 import { LIFETIME_PRICE_BDT } from "@/lib/pricing";
 
 type IconName = keyof typeof ICON_PATHS;
@@ -18,7 +18,7 @@ const workflows: {
     label: "Auto-pick",
     title: "Let the app choose",
     description:
-      "Start with one prompt and let AI Model Council select a fitting model path for quality, speed, budget, coding, research, or free-only work.",
+      "Start with one prompt and let Bohumot AI select a fitting model path for quality, speed, budget, coding, research, or free-only work.",
     href: "/chat",
     icon: "sparkle",
     meta: "Route receipt included",
@@ -80,7 +80,7 @@ const controlItems: { title: string; body: string; icon: IconName }[] = [
 ];
 
 export const metadata: Metadata = {
-  title: "AI Model Council | One prompt, multiple AI workflows",
+  title: "Bohumot AI | One prompt, multiple AI workflows",
   description:
     "Ask once, then chat with one model, compare models side by side, or convene a judged AI council using your own OpenRouter key.",
 };
@@ -91,7 +91,7 @@ function HeroScene() {
       <div className="absolute left-1/2 top-20 h-[500px] w-[960px] -translate-x-1/2 border border-border bg-surface/70 shadow-2xl sm:top-28" />
       <div className="absolute left-[6%] top-28 hidden w-64 border border-border bg-background/90 p-4 shadow-xl lg:block">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[11px] text-muted-2">AI Model Council</span>
+          <span className="text-[11px] text-muted-2">Bohumot AI</span>
           <span className="h-2 w-2 rounded-full bg-success" />
         </div>
         <div className="space-y-2">
@@ -175,9 +175,8 @@ export default function LandingPage() {
       <section className="relative border-b border-border bg-background">
         <HeroScene />
         <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-          <Link href="/" className="flex items-center gap-2" aria-label="AI Model Council home">
-            <LogoMark className="h-7 w-7 text-foreground" />
-            <span className="text-[15px] font-semibold">AI Model Council</span>
+          <Link href="/" className="flex items-center" aria-label="Bohumot AI home">
+            <BrandLogo className="h-10 w-[175px]" priority />
           </Link>
           <nav className="hidden items-center gap-5 text-[13px] text-muted md:flex" aria-label="Primary navigation">
             <a href="#workflows" className="hover:text-foreground">
@@ -216,7 +215,8 @@ export default function LandingPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               300+ AI models via your OpenRouter key
             </p>
-            <h1 className="font-heading text-[42px] leading-none sm:text-[72px] lg:text-[86px]">AI Model Council</h1>
+            <BrandLogo className="mb-5 h-16 w-[230px] sm:h-20 sm:w-[310px]" priority />
+            <h1 className="font-heading text-[42px] leading-none sm:text-[72px] lg:text-[86px]">Bohumot AI</h1>
             <p className="mt-5 max-w-2xl text-[17px] leading-7 text-muted sm:text-[19px]">
               One prompt can become a single answer, a side-by-side comparison, an automatic model pick, or a judged
               council verdict. Use the strongest model path for the job without rebuilding your workflow every time.
@@ -361,7 +361,7 @@ export default function LandingPage() {
             <p className="mb-2 text-[12px] font-semibold uppercase text-accent-text">Simple pricing</p>
             <h2 className="font-heading text-[34px] leading-[1.08] sm:text-[46px]">Lifetime access for Bangladesh.</h2>
             <p className="mt-4 max-w-2xl text-[14px] leading-6 text-muted">
-              Pay once for the product, then run models on your own key. No per-answer markup from AI Model Council.
+              Pay once for the product, then run models on your own key. No per-answer markup from Bohumot AI.
             </p>
             <div className="mt-7 flex flex-col gap-5 border-t border-border pt-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -402,8 +402,7 @@ export default function LandingPage() {
       <footer className="border-t border-border bg-surface px-4 py-8 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 text-[12px] text-muted-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <LogoMark className="h-5 w-5 text-foreground" />
-            <span>AI Model Council</span>
+            <BrandLogo className="h-7 w-[125px]" />
           </div>
           <div className="flex flex-wrap gap-4">
             <Link href="/council" className="hover:text-foreground">

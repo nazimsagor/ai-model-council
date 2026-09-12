@@ -25,7 +25,7 @@ const STATUS_COLOR: Record<string, string> = {
 export function StatusBoard({
   order,
   modelStates,
-  label = "AI Model Council",
+  label = "Bohumot AI",
 }: {
   order: string[];
   modelStates: Record<string, ModelState>;

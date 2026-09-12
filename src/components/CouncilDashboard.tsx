@@ -1024,7 +1024,7 @@ export function CouncilDashboard() {
           <StatusBoard
             order={state.order}
             modelStates={state.modelStates}
-            label={workflow === "council" ? "AI Model Council" : activeWorkflowMeta.label}
+            label={workflow === "council" ? "Bohumot AI" : activeWorkflowMeta.label}
           />
 
           {state.notices.map((n, i) => (

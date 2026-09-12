@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const { GatewayPageURL } = await initSession({
       tran_id,
       amount: LIFETIME_PRICE_BDT,
-      customerName: user.name || user.email || "AI Model Council user",
+      customerName: user.name || user.email || "Bohumot AI user",
       customerEmail: user.email || "no-email@example.com",
       successUrl: `${origin}/api/subscribe/success`,
       failUrl: `${origin}/api/subscribe/fail`,
