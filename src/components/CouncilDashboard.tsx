@@ -439,8 +439,8 @@ export function CouncilDashboard() {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" /> {pillLabel}
           </span>
-          <h1 className="mt-4 font-heading text-[34px] leading-[1.15] tracking-tight sm:text-[40px]">
-            {copy.plain} <span className="text-accent-text italic">{copy.accent}</span>
+          <h1 className="mt-4 font-heading text-[34px] leading-[1.15] sm:text-[40px]">
+            {copy.plain} <span className="text-accent-text">{copy.accent}</span>
           </h1>
           <p className="mx-auto mt-2 max-w-md text-[13px] text-muted">{copy.sub}</p>
         </div>

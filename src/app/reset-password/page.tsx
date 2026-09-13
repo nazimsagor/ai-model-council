@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
 
         {done ? (
           <>
-            <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">Password updated</h1>
+            <h1 className="mb-1.5 font-heading text-[26px] leading-tight">Password updated</h1>
             <p className="mb-6 text-[13px] text-muted-2">You can now sign in with your new password.</p>
             <button
               onClick={() => router.push("/login")}
@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
           </>
         ) : (
           <>
-            <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">Set a new password</h1>
+            <h1 className="mb-1.5 font-heading text-[26px] leading-tight">Set a new password</h1>
             <p className="mb-6 text-[13px] text-muted-2">Choose a new password for your account.</p>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">

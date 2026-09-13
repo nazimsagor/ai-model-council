@@ -84,7 +84,7 @@ export function ModelExplorer() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
-      <h1 className="mb-1 text-[20px] font-semibold tracking-tight">Model Explorer</h1>
+      <h1 className="mb-1 text-[20px] font-semibold">Model Explorer</h1>
       <p className="mb-4 text-[13px] text-muted">
         {models.length} models available live from OpenRouter, grouped and filterable by provider and
         capability.

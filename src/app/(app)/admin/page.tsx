@@ -85,7 +85,7 @@ function AccessMessage({
     <div className="mx-auto flex min-h-full max-w-[720px] flex-col justify-center px-4 py-10 sm:px-6">
       <div className="rounded-lg border border-border bg-surface px-5 py-5">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-text">Admin</p>
-        <h1 className="mt-2 text-[22px] font-semibold tracking-tight">{title}</h1>
+        <h1 className="mt-2 text-[22px] font-semibold">{title}</h1>
         <p className="mt-2 text-[13px] leading-6 text-muted">{message}</p>
         {actionHref && actionLabel && (
           <Link
@@ -104,7 +104,7 @@ function StatCard({ label, value, note }: { label: string; value: string; note: 
   return (
     <section className="rounded-lg border border-border bg-surface px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-2">{label}</p>
-      <p className="mt-2 text-[24px] font-semibold tracking-tight">{value}</p>
+      <p className="mt-2 text-[24px] font-semibold">{value}</p>
       <p className="mt-1 truncate text-[12px] text-muted">{note}</p>
     </section>
   );
@@ -199,7 +199,7 @@ export default async function AdminPage() {
       <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-text">Owner Dashboard</p>
-          <h1 className="mt-2 text-[24px] font-semibold tracking-tight">Admin</h1>
+          <h1 className="mt-2 text-[24px] font-semibold">Admin</h1>
           <p className="mt-1 max-w-[720px] text-[13px] leading-6 text-muted">
             Buyers, promo usage, users, payments, and recent model runs from Supabase.
           </p>
@@ -233,7 +233,7 @@ export default async function AdminPage() {
 
       <section className="mt-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold tracking-tight">Sales & Buyers</h2>
+          <h2 className="text-[15px] font-semibold">Sales & Buyers</h2>
           <span className="text-[11px] text-muted-2">Latest 200 payments</span>
         </div>
         <div className="overflow-x-auto rounded-lg border border-border bg-surface">
@@ -286,7 +286,7 @@ export default async function AdminPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold tracking-tight">Promo Codes</h2>
+            <h2 className="text-[15px] font-semibold">Promo Codes</h2>
             <span className="text-[11px] text-muted-2">Coupons table</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border bg-surface">
@@ -329,7 +329,7 @@ export default async function AdminPage() {
 
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold tracking-tight">Users</h2>
+            <h2 className="text-[15px] font-semibold">Users</h2>
             <span className="text-[11px] text-muted-2">Latest 500 profiles</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border bg-surface">
@@ -370,7 +370,7 @@ export default async function AdminPage() {
 
       <section className="mt-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold tracking-tight">Recent Runs</h2>
+          <h2 className="text-[15px] font-semibold">Recent Runs</h2>
           <span className="text-[11px] text-muted-2">Latest 100 model jobs</span>
         </div>
         <div className="overflow-x-auto rounded-lg border border-border bg-surface">

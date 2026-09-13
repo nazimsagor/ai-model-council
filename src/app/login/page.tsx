@@ -167,7 +167,7 @@ function LoginForm() {
           </div>
         )}
 
-        <h1 className="mb-1.5 font-heading text-[26px] leading-tight tracking-tight">
+        <h1 className="mb-1.5 font-heading text-[26px] leading-tight">
           {mode === "signin" ? "Welcome back" : mode === "signup" ? "Get started free" : "Reset your password"}
         </h1>
         <p className="mb-6 text-[13px] text-muted-2">

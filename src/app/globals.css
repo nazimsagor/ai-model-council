@@ -1,63 +1,34 @@
 @import "tailwindcss";
 
-/* Dark is the default brand experience — black, ivory, electric orange. */
+/* Bohumot AI brand system: black glass, warm ivory, champagne gold. */
 :root {
-  --background: #0a0a0a;
-  --surface: #171717;
-  --surface-raised: #1c1c1c;
-  --border: #292929;
-  --border-strong: #3d3d3d;
-  --foreground: #f5f1e8;
-  --muted: #a6a198;
-  --muted-2: #847e72;
+  --background: #070605;
+  --surface: #14110c;
+  --surface-raised: #1e1a12;
+  --border: #30291b;
+  --border-strong: #4b4029;
+  --foreground: #fbf4e6;
+  --muted: #c8bea7;
+  --muted-2: #94866a;
 
-  --accent: #ff5a1f;
-  --accent-hover: #ff7a47;
-  --accent-text: #ff5a1f;
-  --accent-soft: #2a1710;
-  --on-accent: #0a0a0a;
+  --accent: #f2c86b;
+  --accent-hover: #ffe09a;
+  --accent-text: #f6cf78;
+  --accent-soft: #251d10;
+  --on-accent: #151007;
 
-  --success: #d9ff66;
-  --success-soft: #1a2408;
-  --warning: #e8b339;
-  --warning-soft: #2a2008;
-  --danger: #eb5459;
-  --danger-soft: #2a1214;
-  --info: #7da6c9;
-  --info-soft: #12202a;
+  --success: #63d7b4;
+  --success-soft: #0d211b;
+  --warning: #edae49;
+  --warning-soft: #271c0b;
+  --danger: #ff6872;
+  --danger-soft: #2b1116;
+  --info: #8eb8ff;
+  --info-soft: #101c30;
 
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-serif);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
   --font-mono: var(--font-geist-mono);
-}
-
-/* Light is an intentional separate system, not an inversion. */
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #f4f0e8;
-    --surface: #ffffff;
-    --surface-raised: #ffffff;
-    --border: #e3ddd0;
-    --border-strong: #d0c8b8;
-    --foreground: #111111;
-    --muted: #6b6558;
-    --muted-2: #736d5a;
-
-    --accent: #e94b16;
-    --accent-hover: #c93e10;
-    --accent-text: #b23a0d;
-    --accent-soft: #fbe4d6;
-    --on-accent: #0a0a0a;
-
-    --success: #607000;
-    --success-soft: #eef2d6;
-    --warning: #92600a;
-    --warning-soft: #fbf0dc;
-    --danger: #b23a2e;
-    --danger-soft: #fbe7e1;
-    --info: #2e6699;
-    --info-soft: #e7f0f8;
-  }
 }
 
 @theme inline {
@@ -92,7 +63,7 @@
 }
 
 html {
-  color-scheme: dark light;
+  color-scheme: dark;
 }
 
 body {
@@ -100,6 +71,22 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-heading {
+  font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 ::selection {

@@ -29,7 +29,7 @@ export function HistoryList() {
 
   return (
     <div className="mx-auto max-w-[1000px] px-4 py-6 sm:px-6">
-      <h1 className="mb-4 text-[20px] font-semibold tracking-tight">History</h1>
+      <h1 className="mb-4 text-[20px] font-semibold">History</h1>
 
       {error && <p className="text-[13px] text-danger">Failed to load history: {error}</p>}
       {runs === null && !error && <p className="text-[13px] text-muted">Loading…</p>}
