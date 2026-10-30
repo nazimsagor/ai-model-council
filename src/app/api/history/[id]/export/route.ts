@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRun } from "@/lib/repository";
-import { getCurrentUser } from "@/lib/subscription";
+import { getRunOwner } from "@/lib/runOwner";
 import type { CouncilRun } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -50,9 +50,9 @@ function toMarkdown(run: CouncilRun): string {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format") ?? "json";
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Sign in to export this run." }, { status: 401 });
-  const run = await getRun(id, user.id);
+  const owner = await getRunOwner();
+  if (!owner) return NextResponse.json({ error: "Sign in to export this run." }, { status: 401 });
+  const run = await getRun(id, owner);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
 
   if (format === "markdown") {

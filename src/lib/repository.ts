@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { RunOwner } from "./runOwner";
 import type {
   CouncilRun,
   CouncilRunSummary,
@@ -7,7 +8,7 @@ import type {
 } from "./types";
 
 export async function createRun(input: {
-  userId: string;
+  owner: RunOwner;
   prompt: string;
   systemPrompt?: string;
   workflow: string;
@@ -22,7 +23,7 @@ export async function createRun(input: {
   const { data, error } = await supabase
     .from("runs")
     .insert({
-      user_id: input.userId,
+      [input.owner.column]: input.owner.id,
       prompt: input.prompt,
       system_prompt: input.systemPrompt ?? null,
       workflow: input.workflow,
@@ -135,13 +136,13 @@ interface EvaluationRow {
   justification: string;
 }
 
-/** Returns the run only if it belongs to this user. */
-export async function getRun(runId: string, userId: string): Promise<CouncilRun | null> {
+/** Returns the run only if it belongs to this owner. */
+export async function getRun(runId: string, owner: RunOwner): Promise<CouncilRun | null> {
   const { data: row, error } = await supabase
     .from("runs")
     .select("*")
     .eq("id", runId)
-    .eq("user_id", userId)
+    .eq(owner.column, owner.id)
     .maybeSingle<RunRow>();
 
   if (error) throw new Error(`Failed to load run: ${error.message}`);
@@ -203,11 +204,11 @@ export interface RunListItem {
   topModelId?: string;
 }
 
-export async function listRuns(userId: string, limit = 50): Promise<RunListItem[]> {
+export async function listRuns(owner: RunOwner, limit = 50): Promise<RunListItem[]> {
   const { data, error } = await supabase
     .from("runs")
     .select("id, prompt, created_at, status, workflow, selected_model_ids, total_cost, summary_json")
-    .eq("user_id", userId)
+    .eq(owner.column, owner.id)
     .order("created_at", { ascending: false })
     .limit(limit)
     .returns<
@@ -231,7 +232,7 @@ export async function listRuns(userId: string, limit = 50): Promise<RunListItem[
   }));
 }
 
-export async function deleteRun(runId: string, userId: string) {
-  const { error } = await supabase.from("runs").delete().eq("id", runId).eq("user_id", userId);
+export async function deleteRun(runId: string, owner: RunOwner) {
+  const { error } = await supabase.from("runs").delete().eq("id", runId).eq(owner.column, owner.id);
   if (error) throw new Error(`Failed to delete run: ${error.message}`);
 }

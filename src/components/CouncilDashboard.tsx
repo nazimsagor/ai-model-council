@@ -18,6 +18,8 @@ import { CostSpeedSummary } from "@/components/CostSpeedSummary";
 import { Icon, ICON_PATHS } from "@/components/icons";
 import { COMBOS, resolveCombo } from "@/lib/council/combos";
 import { useCurrentUser } from "@/lib/client/useCurrentUser";
+import { SIGN_IN_REQUIRED } from "@/lib/authMode";
+import { savePendingPrompt, takePendingPrompt, type PendingPrompt } from "@/lib/client/pendingPrompt";
 import type { PromptMode, Workflow } from "@/lib/types";
 
 const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof ICON_PATHS }[] = [
@@ -139,6 +141,22 @@ export function CouncilDashboard() {
 
   const modelPicked = useRef(false);
 
+  // A prompt handed off from /home: prefilled here, then sent once a model
+  // lineup is ready — as if the user had pressed Enter on this page. Taken
+  // from storage once per mount (Strict Mode re-runs effects) and held here.
+  const handoffRef = useRef<PendingPrompt | null>(null);
+  const handoffTaken = useRef(false);
+  useEffect(() => {
+    if (!handoffTaken.current) {
+      handoffTaken.current = true;
+      handoffRef.current = takePendingPrompt();
+    }
+    const pending = handoffRef.current;
+    if (!pending) return;
+    const timer = setTimeout(() => setPrompt(pending.prompt), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Reset the whole composer when the sidebar's "New Council" button fires.
   useEffect(() => {
     function reset() {
@@ -192,6 +210,8 @@ export function CouncilDashboard() {
   useEffect(() => {
     if (workflow !== "chat") return;
     if (modelPicked.current || selectedIds.size > 0) return;
+    // Auto-route from /home asks for a prompt-driven pick, not the saved default.
+    if (handoffRef.current?.autoRoute) return;
     if (!defaultModelId) return;
     if (!availableModels.some((m) => m.id === defaultModelId)) return;
     const timer = setTimeout(() => {
@@ -348,7 +368,7 @@ export function CouncilDashboard() {
     // Browsing is fully open, but running a chat needs an account — the
     // API enforces this too, but redirecting straight to /login here is a
     // much better experience than surfacing a "sign in" error banner.
-    if (!userLoading && !user) {
+    if (SIGN_IN_REQUIRED && !userLoading && !user) {
       router.push(`/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`);
       return;
     }
@@ -381,6 +401,23 @@ export function CouncilDashboard() {
       apiKey
     );
   }
+
+  // Send the /home handoff once its prompt is in place and a lineup has
+  // settled (default model, recommended council, combo, or auto-select).
+  useEffect(() => {
+    if (!handoffRef.current || isRunning || autoBusy || userLoading) return;
+    if (!prompt.trim() || selectedIds.size === 0) return;
+    const timer = setTimeout(() => {
+      const pending = handoffRef.current;
+      if (!pending) return;
+      handoffRef.current = null;
+      // handleRun bounces signed-out users to /login; keep the prompt for the trip back.
+      if (SIGN_IN_REQUIRED && !user) savePendingPrompt(pending);
+      handleRun();
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt, selectedIds, autoBusy, isRunning, userLoading]);
 
   // Once judged, rank by score (best first) — the final, meaningful order.
   // Before that, rank by who's actually finished so you can start reading

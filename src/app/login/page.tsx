@@ -54,7 +54,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const next = searchParams.get("next") ?? "/council";
+  const next = searchParams.get("next") ?? "/home";
 
   async function signInWithProvider(provider: "google" | "github") {
     setLoading(true);

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Icon, ICON_PATHS } from "@/components/icons";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LIFETIME_PRICE_BDT } from "@/lib/pricing";
+import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 
 type IconName = keyof typeof ICON_PATHS;
 
@@ -85,66 +86,69 @@ export const metadata: Metadata = {
     "Ask once, then chat with one model, compare models side by side, or convene a judged AI council using your own OpenRouter key.",
 };
 
-function HeroScene() {
+// In-flow preview card for the hero's right column — it takes its own grid
+// cell instead of floating over the headline.
+function HeroPreview() {
+  const models = [
+    { name: "Claude", score: "9.1", dot: "bg-success" },
+    { name: "GPT", score: "8.7", dot: "bg-info" },
+    { name: "Gemini", score: "8.4", dot: "bg-warning" },
+    { name: "Llama", score: "7.9", dot: "bg-warning" },
+  ];
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute left-1/2 top-20 h-[500px] w-[960px] -translate-x-1/2 border border-border bg-surface/70 shadow-2xl sm:top-28" />
-      <div className="absolute left-[6%] top-28 hidden w-64 border border-border bg-background/90 p-4 shadow-xl lg:block">
+    <div className="relative" aria-hidden>
+      <div className="absolute -inset-6 -z-10 rounded-[32px] bg-[radial-gradient(ellipse_at_center,var(--accent-soft),transparent_70%)]" />
+      <div className="rounded-2xl border border-border bg-surface p-4 shadow-xl sm:p-5">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[11px] text-muted-2">Bohumot AI</span>
-          <span className="h-2 w-2 rounded-full bg-success" />
-        </div>
-        <div className="space-y-2">
-          {["Chat", "Compare", "Council"].map((item, index) => (
-            <div key={item} className="flex items-center justify-between border border-border bg-surface px-3 py-2">
-              <span className="text-[12px] text-foreground">{item}</span>
-              <span className={index === 2 ? "text-[11px] text-accent-text" : "text-[11px] text-muted-2"}>
-                ready
-              </span>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-on-accent">
+              <Icon path={ICON_PATHS.council} className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">Council run</p>
+              <p className="text-[11px] text-muted-2">4 models plus judge</p>
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="absolute right-[-80px] top-36 w-[520px] border border-border-strong bg-background/95 p-4 shadow-2xl sm:right-[5%]">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-on-accent">
-            <Icon path={ICON_PATHS.council} className="h-4 w-4" />
-          </span>
-          <div>
-            <p className="text-[12px] font-semibold text-foreground">Council run</p>
-            <p className="text-[10px] text-muted-2">6 models plus judge</p>
           </div>
+          <span className="flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-success">
+            <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-success" />
+            Judging
+          </span>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {["Claude", "GPT", "Gemini", "Llama"].map((model, index) => (
-            <div key={model} className="border border-border bg-surface px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-foreground">{model}</span>
-                <span
-                  className={
-                    index === 0
-                      ? "h-1.5 w-1.5 rounded-full bg-success"
-                      : index === 1
-                        ? "h-1.5 w-1.5 rounded-full bg-info"
-                        : "h-1.5 w-1.5 rounded-full bg-warning"
-                  }
-                />
+
+        <div className="grid grid-cols-2 gap-2">
+          {models.map((model) => (
+            <div key={model.name} className="rounded-xl border border-border bg-background px-3 py-3">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                  <span className={`h-1.5 w-1.5 rounded-full ${model.dot}`} />
+                  {model.name}
+                </span>
+                <span className="font-mono text-[11px] text-muted-2">{model.score}</span>
               </div>
-              <div className="h-1.5 w-full bg-border" />
-              <div className="mt-1.5 h-1.5 w-3/4 bg-border" />
+              <div className="h-1.5 w-full rounded-full bg-border" />
+              <div className="mt-1.5 h-1.5 w-2/3 rounded-full bg-border" />
             </div>
           ))}
         </div>
-        <div className="mt-3 border border-accent/50 bg-accent-soft px-3 py-2 text-[11px] text-accent-text">
-          Judge verdict: consensus strong, two caveats found.
+
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-accent/40 bg-accent-soft px-3 py-2.5">
+          <Icon path={ICON_PATHS.trophy} className="mt-0.5 h-4 w-4 text-accent-text" />
+          <p className="text-[12px] leading-5 text-accent-text">
+            <span className="font-semibold">Verdict:</span> strong consensus, two caveats flagged.
+          </p>
         </div>
-      </div>
-      <div className="absolute bottom-[-80px] left-[12%] hidden w-[420px] border border-border bg-background/90 p-4 shadow-xl md:block">
-        <p className="mb-3 text-[11px] text-muted-2">Transparent route receipt</p>
-        <div className="grid grid-cols-3 gap-2 text-[11px]">
-          <span className="border border-border bg-surface px-2 py-2 text-info">provider</span>
-          <span className="border border-border bg-surface px-2 py-2 text-success">tokens</span>
-          <span className="border border-border bg-surface px-2 py-2 text-warning">cost</span>
+
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+          {[
+            ["Provider", "4 routes"],
+            ["Tokens", "12.4k"],
+            ["Cost", "$0.018"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-border bg-background px-2.5 py-2">
+              <p className="text-muted-2">{label}</p>
+              <p className="mt-0.5 font-mono text-foreground">{value}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -173,7 +177,6 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <section className="relative border-b border-border bg-background">
-        <HeroScene />
         <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
           <Link href="/" className="flex items-center" aria-label="Bohumot AI home">
             <BrandLogo className="h-10 w-[175px]" priority />
@@ -193,14 +196,16 @@ export default function LandingPage() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
+            {SIGN_IN_REQUIRED && (
+              <Link
+                href="/login?next=%2Fhome"
+                className="hidden text-[13px] font-medium text-muted hover:text-foreground sm:inline"
+              >
+                Log in
+              </Link>
+            )}
             <Link
-              href="/login?next=%2Fcouncil"
-              className="hidden text-[13px] font-medium text-muted hover:text-foreground sm:inline"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/council"
+              href="/home"
               className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
               Open app
@@ -209,38 +214,45 @@ export default function LandingPage() {
           </div>
         </header>
 
-        <div className="relative z-10 mx-auto flex min-h-[72svh] max-w-6xl flex-col justify-center px-4 pb-16 pt-10 sm:px-6 lg:pb-20">
-          <div className="max-w-3xl">
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-[12px] font-medium text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              300+ AI models via your OpenRouter key
-            </p>
-            <BrandLogo className="mb-5 h-16 w-[230px] sm:h-20 sm:w-[310px]" priority />
-            <h1 className="font-heading text-[42px] leading-none sm:text-[72px] lg:text-[86px]">Bohumot AI</h1>
-            <p className="mt-5 max-w-2xl text-[17px] leading-7 text-muted sm:text-[19px]">
-              One prompt can become a single answer, a side-by-side comparison, an automatic model pick, or a judged
-              council verdict. Use the strongest model path for the job without rebuilding your workflow every time.
-            </p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/council"
-                className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-5 py-3 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-              >
-                Start a council
-                <Icon path={ICON_PATHS.arrowRight} className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/compare"
-                className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-background/80 px-5 py-3 text-[14px] font-semibold text-foreground transition-colors hover:border-border-strong"
-              >
-                Compare models
-              </Link>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:pb-20 lg:pt-14">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+            <div>
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-[12px] font-medium text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                300+ AI models via your OpenRouter key
+              </p>
+              <h1 className="font-heading text-[40px] leading-[1.04] sm:text-[56px] lg:text-[64px]">
+                Ask once.
+                <br />
+                <span className="text-accent-text">Let the right model answer.</span>
+              </h1>
+              <p className="mt-5 max-w-xl text-[16px] leading-7 text-muted sm:text-[18px]">
+                One prompt can become a single answer, a side-by-side comparison, an automatic model pick, or a judged
+                council verdict — without rebuilding your workflow every time.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/home"
+                  className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-5 py-3 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+                >
+                  Start with a prompt
+                  <Icon path={ICON_PATHS.arrowRight} className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/council"
+                  className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-5 py-3 text-[14px] font-semibold text-foreground transition-colors hover:border-border-strong"
+                >
+                  Try a council
+                </Link>
+              </div>
             </div>
+
+            <HeroPreview />
           </div>
 
-          <div className="mt-12 grid gap-3 sm:grid-cols-4">
+          <div className="mt-14 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {proofPoints.map((point) => (
-              <div key={point.label} className="border border-border bg-background/75 px-4 py-3">
+              <div key={point.label} className="rounded-xl border border-border bg-surface px-4 py-3">
                 <p className="font-mono text-[20px] text-foreground">{point.value}</p>
                 <p className="mt-1 text-[12px] text-muted-2">{point.label}</p>
               </div>
@@ -405,7 +417,7 @@ export default function LandingPage() {
             <BrandLogo className="h-7 w-[125px]" />
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link href="/council" className="hover:text-foreground">
+            <Link href="/home" className="hover:text-foreground">
               App
             </Link>
             <Link href="/models" className="hover:text-foreground">
@@ -414,7 +426,7 @@ export default function LandingPage() {
             <Link href="/subscribe" className="hover:text-foreground">
               Pricing
             </Link>
-            <Link href="/login?next=%2Fcouncil" className="hover:text-foreground">
+            <Link href="/login?next=%2Fhome" className="hover:text-foreground">
               Login
             </Link>
           </div>

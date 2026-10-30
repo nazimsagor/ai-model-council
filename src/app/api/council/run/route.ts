@@ -6,6 +6,8 @@ import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
 import { createRun, failRun } from "@/lib/repository";
 import { getCurrentUser } from "@/lib/subscription";
+import { SIGN_IN_REQUIRED } from "@/lib/authMode";
+import { getRunOwner, newVisitorOwner } from "@/lib/runOwner";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { CouncilMode, PromptMode, SSEEvent, Workflow } from "@/lib/types";
 
@@ -51,15 +53,23 @@ export async function POST(req: NextRequest) {
 
   // Browsing the site is fully open, but actually running a chat needs an
   // account — checked here (not just in the UI) since a UI-only gate is
-  // trivially bypassable by calling this endpoint directly.
+  // trivially bypassable by calling this endpoint directly. With sign-in
+  // switched off, an anonymous visitor cookie stands in for the account.
   const user = await getCurrentUser();
-  if (!user) {
+  if (!user && SIGN_IN_REQUIRED) {
     return new Response(JSON.stringify({ error: "Sign in to chat — it's free with any Google account." }), {
       status: 401,
     });
   }
+  let owner = await getRunOwner();
+  let setVisitorCookie: string | null = null;
+  if (!owner) {
+    const visitor = newVisitorOwner();
+    owner = visitor.owner;
+    setVisitorCookie = visitor.setCookie;
+  }
 
-  const rateLimit = await checkRateLimit(`council-run:${user.id}`);
+  const rateLimit = await checkRateLimit(`council-run:${owner.id}`);
   if (!rateLimit.allowed) {
     return new Response(
       JSON.stringify({ error: "You're sending requests too fast — please wait a bit and try again." }),
@@ -117,7 +127,7 @@ export async function POST(req: NextRequest) {
   // instead of vanishing silently (the client already displayed it as
   // "Failed" locally; only the DB record was missing).
   const runId = await createRun({
-    userId: user.id,
+    owner,
     prompt: body.prompt,
     systemPrompt,
     workflow,
@@ -131,8 +141,9 @@ export async function POST(req: NextRequest) {
 
   // No run — free model or paid — works without an active subscription.
   // Checked here too, not just by hiding the "Add API key" UI, since this
-  // endpoint is reachable directly with any key in the header.
-  if (!user.isSubscribed) {
+  // endpoint is reachable directly with any key in the header. Skipped when
+  // sign-in is switched off: the visitor's own key is the only requirement.
+  if (SIGN_IN_REQUIRED && !user?.isSubscribed) {
     await failRun(runId);
     const workflowLabel = workflow === "chat" ? "chat" : workflow === "compare" ? "compare" : "run the council";
     return new Response(JSON.stringify({ error: `Subscribe to ${workflowLabel}.` }), { status: 402 });
@@ -196,6 +207,7 @@ export async function POST(req: NextRequest) {
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Run-Id": runId,
+      ...(setVisitorCookie ? { "Set-Cookie": setVisitorCookie } : {}),
     },
   });
 }

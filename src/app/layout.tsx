@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Manrope, Space_Grotesk } from "next/font/google";
+import { Geist_Mono, Poppins } from "next/font/google";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { AppSettingsProvider } from "@/lib/client/appSettings";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-display",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const manrope = Manrope({
+// Poppins for both headings and body; globals.css points --font-heading here too.
+const poppins = Poppins({
   variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -34,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full">
         <AppSettingsProvider>

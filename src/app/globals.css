@@ -1,33 +1,33 @@
 @import "tailwindcss";
 
-/* Bohumot AI brand system: near-black glass, clean ivory, electric teal. */
+/* Bohumot AI brand system: soft lavender, deep plum text, violet. */
 :root {
-  --background: #060707;
-  --surface: #101414;
-  --surface-raised: #171d1d;
-  --border: #24302e;
-  --border-strong: #3a4b46;
-  --foreground: #f5fbf8;
-  --muted: #afbfba;
-  --muted-2: #7c918a;
+  --background: #f7f5ff;
+  --surface: #ffffff;
+  --surface-raised: #efebff;
+  --border: #e4defb;
+  --border-strong: #cfc6f5;
+  --foreground: #1e1537;
+  --muted: #5b5378;
+  --muted-2: #736b92;
 
-  --accent: #16e2c3;
-  --accent-hover: #63f4df;
-  --accent-text: #65f2dc;
-  --accent-soft: #082622;
-  --on-accent: #021513;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-text: #6d28d9;
+  --accent-soft: #ede7fe;
+  --on-accent: #ffffff;
 
-  --success: #69e49a;
-  --success-soft: #0d2418;
-  --warning: #f1b84b;
-  --warning-soft: #261c0b;
-  --danger: #ff6f87;
-  --danger-soft: #2b1118;
-  --info: #8cb7ff;
-  --info-soft: #101d31;
+  --success: #15803d;
+  --success-soft: #dcf3e4;
+  --warning: #b45309;
+  --warning-soft: #fdefd3;
+  --danger: #dc2626;
+  --danger-soft: #fde2e2;
+  --info: #2563eb;
+  --info-soft: #dce8fd;
 
   --font-sans: var(--font-body);
-  --font-heading: var(--font-display);
+  --font-heading: var(--font-body);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -63,7 +63,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -79,7 +79,7 @@ h3,
 .font-heading {
   font-family: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 button,

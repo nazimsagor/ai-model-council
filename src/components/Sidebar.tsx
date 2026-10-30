@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/lib/client/useCurrentUser";
 import { createSupabaseBrowserClient } from "@/lib/supabase/authClient";
 import { Icon, ICON_PATHS } from "@/components/icons";
 import { BrandLogo } from "@/components/BrandLogo";
+import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 
 function NavLink({
   href,
@@ -64,22 +65,35 @@ export function Sidebar() {
     return () => window.removeEventListener("council:run-started", refetch);
   }, [pathname]);
 
+  const keyButton = (
+    <button
+      onClick={openKeyModal}
+      className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
+    >
+      <span className="flex items-center gap-1.5">
+        <Icon path={ICON_PATHS.key} />
+        {hasApiKey ? "OpenRouter key set" : "Add API key"}
+      </span>
+      <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
+    </button>
+  );
+
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface px-3 py-4">
-      <Link href="/council" className="flex items-center px-1" aria-label="Bohumot AI workspace">
+      <Link href="/home" className="flex items-center px-1" aria-label="Bohumot AI workspace">
         <BrandLogo className="h-8 w-[150px]" priority />
       </Link>
 
       <Link
-        href="/council"
-        onClick={() => window.dispatchEvent(new Event("council:new"))}
+        href="/home"
         className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
       >
         <Icon path={ICON_PATHS.plus} className="h-3.5 w-3.5" />
-        New Council
+        New prompt
       </Link>
 
       <nav className="flex flex-col gap-0.5">
+        <NavLink href="/home" active={pathname === "/home"} icon="home" label="Home" />
         <NavLink href="/chat" active={pathname === "/chat"} icon="chat" label="Chat" />
         <NavLink href="/compare" active={pathname === "/compare"} icon="compare" label="Compare" />
         <NavLink href="/council" active={pathname === "/council"} icon="council" label="Council" />
@@ -154,19 +168,12 @@ export function Sidebar() {
         </div>
       </div>
 
-      {user ? (
+      {!SIGN_IN_REQUIRED && !user ? (
+        keyButton
+      ) : user ? (
         <>
-          {user.isSubscribed ? (
-            <button
-              onClick={openKeyModal}
-              className="flex items-center justify-between rounded-lg border border-border px-2.5 py-2 text-[12px] transition-colors hover:border-border-strong"
-            >
-              <span className="flex items-center gap-1.5">
-                <Icon path={ICON_PATHS.key} />
-                {hasApiKey ? "OpenRouter key set" : "Add API key"}
-              </span>
-              <span className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? "bg-success" : "bg-danger"}`} />
-            </button>
+          {user.isSubscribed || !SIGN_IN_REQUIRED ? (
+            keyButton
           ) : (
             <Link
               href="/subscribe"
@@ -192,7 +199,7 @@ export function Sidebar() {
                 <Icon path={ICON_PATHS.logout} className="h-4 w-4" />
               </button>
             </div>
-            {user.isSubscribed ? (
+            {!SIGN_IN_REQUIRED ? null : user.isSubscribed ? (
               <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-success">
                 Subscribed
               </span>

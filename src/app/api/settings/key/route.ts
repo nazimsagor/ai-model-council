@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/subscription";
+import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  if (!user.isSubscribed) return NextResponse.json({ error: "Subscribe to add an API key." }, { status: 402 });
+  if (SIGN_IN_REQUIRED && !user.isSubscribed) return NextResponse.json({ error: "Subscribe to add an API key." }, { status: 402 });
 
   const body = (await req.json()) as { key?: string };
   const key = body.key?.trim() || null;

@@ -30,7 +30,7 @@ export async function proxy(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    return NextResponse.redirect(new URL("/council", req.url));
+    return NextResponse.redirect(new URL("/home", req.url));
   }
 
   return res;
