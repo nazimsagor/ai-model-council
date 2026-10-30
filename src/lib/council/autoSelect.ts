@@ -4,6 +4,7 @@ import {
   costAwareModelScore,
   isAutoPickCandidate,
   modelCostPerMillion,
+  premiumFlagships,
   sortByCostAwareScore,
 } from "./modelSelection";
 
@@ -251,15 +252,46 @@ function trendingCouncil(
   return null;
 }
 
+/** Premium lineup: each lab's trending flagship (see premiumFlagships), big
+ *  premium labs first. The judge is the priciest trending model from a lab
+ *  off the panel, so it's at least as capable as the debaters it scores.
+ *  Null when there aren't enough paid flagships — e.g. a free-only catalog. */
+function premiumCouncil(
+  catalog: OpenRouterModel[],
+  trendingIds: string[],
+  count: number
+): CouncilRecommendation | null {
+  const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+  const usable = catalog.filter(isAutoPickCandidate);
+  for (const depth of [undefined, trendingIds.length]) {
+    const flagships = premiumFlagships(usable, trendingIds, depth);
+    if (flagships.length < count) continue;
+    const debaters = flagships.slice(0, count);
+    const priciestFirst = trendingIds
+      .slice(0, TRENDING_DEPTH)
+      .filter((id) => {
+        const model = catalogMap.get(id);
+        return model && isAutoPickCandidate(model) && model.capabilities.reasoning;
+      })
+      .sort((a, b) => modelCostPerMillion(catalogMap.get(b)!) - modelCostPerMillion(catalogMap.get(a)!));
+    return { modelIds: debaters, judgeModelId: pickJudge(priciestFirst, catalogMap, debaters), source: "trending" };
+  }
+  return null;
+}
+
 /** Recommends a default Council lineup: `count` debaters plus one separate
- *  judge. Prefers this week's trending models (see trendingCouncil); when the
- *  live ranking is unavailable it falls back to a cost-conscious pick from the
- *  catalog that keeps provider diversity. */
+ *  judge. Prefers premium trending flagships, then this week's most-used
+ *  models (free-only catalogs land here); when the live ranking is
+ *  unavailable it falls back to a cost-conscious pick that keeps provider
+ *  diversity. */
 export function buildCouncilRecommendation(
   catalog: OpenRouterModel[],
   trendingIds: string[],
   count: number
 ): CouncilRecommendation {
+  const premium = premiumCouncil(catalog, trendingIds, count);
+  if (premium) return premium;
+
   const trending = trendingCouncil(catalog, trendingIds, count);
   if (trending) return trending;
 

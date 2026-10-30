@@ -53,6 +53,12 @@ const DEFAULT_COMPARE_COMBO = "budget-smart";
 // query param is still honored as a fallback so old links keep working.
 const PATH_WORKFLOW: Record<string, Workflow> = { "/chat": "chat", "/compare": "compare", "/council": "council" };
 
+// "Anthropic: Claude Opus 5.5" → "Claude Opus 5.5" — the chip's provider
+// icon already names the lab, so the prefix only pushes the model name off.
+function shortModelName(name: string): string {
+  return name.replace(/^[^:]{1,30}:\s*/, "");
+}
+
 const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: string }> = {
   chat: {
     plain: "One model.",
@@ -537,7 +543,7 @@ export function CouncilDashboard() {
                     className="flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[12px] text-foreground transition-colors hover:border-danger hover:text-danger"
                   >
                     <ProviderIcon provider={m.provider} className="h-4 w-4" />
-                    <span className="max-w-[110px] truncate">{m.name}</span>
+                    <span className="max-w-[170px] truncate">{shortModelName(m.name)}</span>
                   </button>
                 );
               })}
@@ -550,7 +556,9 @@ export function CouncilDashboard() {
                 {judgeModelId ? (
                   <>
                     <ProviderIcon provider={models.find((m) => m.id === judgeModelId)?.provider ?? "?"} className="h-4 w-4" />
-                    <span className="max-w-[90px] truncate">{models.find((m) => m.id === judgeModelId)?.name ?? "Judge"}</span>
+                    <span className="max-w-[150px] truncate">
+                      {shortModelName(models.find((m) => m.id === judgeModelId)?.name ?? "Judge")}
+                    </span>
                   </>
                 ) : (
                   <span>Pick a judge</span>

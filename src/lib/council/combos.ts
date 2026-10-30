@@ -4,6 +4,7 @@ import {
   costAwareModelScore,
   isAutoPickCandidate,
   modelCostPerMillion,
+  premiumFlagships,
 } from "./modelSelection";
 
 export interface ComboDef {
@@ -68,31 +69,6 @@ function onePerProvider(sorted: OpenRouterModel[], count: number): string[] {
     used.add(m.provider);
   }
   return picked;
-}
-
-// Labs whose flagship leads a "Quality leaders" lineup, in this order; any
-// other lab with a trending paid flagship follows by its weekly usage.
-const PREMIUM_LAB_ORDER = ["anthropic", "openai", "google", "x-ai"];
-const PREMIUM_TRENDING_DEPTH = 80;
-
-/** Each lab's flagship — its priciest paid reasoning model among this week's
- *  most-used — with the big premium labs first. Empty without trending data. */
-function premiumFlagships(usable: OpenRouterModel[], trendingIds: string[]): string[] {
-  const byId = new Map(usable.map((m) => [m.id, m]));
-  const flagship = new Map<string, OpenRouterModel>();
-  const labUsageRank = new Map<string, number>();
-  trendingIds.slice(0, PREMIUM_TRENDING_DEPTH).forEach((id, index) => {
-    const m = byId.get(id);
-    if (!m || !m.capabilities.reasoning || modelCostPerMillion(m) === 0) return;
-    if (!labUsageRank.has(m.provider)) labUsageRank.set(m.provider, index);
-    const current = flagship.get(m.provider);
-    if (!current || modelCostPerMillion(m) > modelCostPerMillion(current)) flagship.set(m.provider, m);
-  });
-  const rank = (provider: string) => {
-    const preferred = PREMIUM_LAB_ORDER.indexOf(provider);
-    return preferred === -1 ? PREMIUM_LAB_ORDER.length + labUsageRank.get(provider)! : preferred;
-  };
-  return [...flagship.values()].sort((a, b) => rank(a.provider) - rank(b.provider)).map((m) => m.id);
 }
 
 /** Resolves a named combo to concrete model ids from the live catalog —
