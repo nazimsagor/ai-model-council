@@ -72,7 +72,7 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
 };
 
 export function CouncilDashboard() {
-  const { models, error: modelsError } = useModels();
+  const { models, trendingIds, error: modelsError } = useModels();
   const { state, run, clear } = useCouncilRun();
   const { freeModelsOnly, apiKey, hasApiKey, openKeyModal, defaultModelId, setDefaultModelId } = useAppSettings();
   const { user, loading: userLoading } = useCurrentUser();
@@ -260,11 +260,11 @@ export function CouncilDashboard() {
     if (availableModels.length === 0) return;
     const timer = setTimeout(() => {
       if (workflow !== "compare" || modelPicked.current) return;
-      const ids = resolveCombo(combo, availableModels, COMBO_MODEL_COUNT);
+      const ids = resolveCombo(combo, availableModels, COMBO_MODEL_COUNT, trendingIds);
       setSelectedIds(new Set(ids));
     }, 0);
     return () => clearTimeout(timer);
-  }, [workflow, combo, availableModels]);
+  }, [workflow, combo, availableModels, trendingIds]);
 
   function applyCombo(comboId: string) {
     modelPicked.current = false;

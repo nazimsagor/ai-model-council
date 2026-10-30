@@ -221,16 +221,48 @@ function pickJudge(
   return orderedIds.find((id) => !debaterIds.includes(id) && catalogMap.has(id)) ?? null;
 }
 
+// How deep into this week's usage ranking a model may sit and still count as
+// "trending" — deep enough to reach every major lab, shallow enough to skip
+// niche fine-tunes. Free-only councils fall back to the whole ranking.
+const TRENDING_DEPTH = 60;
+
+/** Trending-first lineup: each lab is represented by its most-used model this
+ *  week, labs ordered by that usage, so a 4/6/8-member council is what people
+ *  are actually running most on OpenRouter right now. The judge is the
+ *  priciest (flagship) trending model from a lab that isn't on the panel. */
+function trendingCouncil(
+  catalog: OpenRouterModel[],
+  trendingIds: string[],
+  count: number
+): CouncilRecommendation | null {
+  const catalogMap = new Map(catalog.map((m) => [m.id, m]));
+  for (const depth of [TRENDING_DEPTH, trendingIds.length]) {
+    const trending = trendingIds.slice(0, depth).filter((id) => {
+      const model = catalogMap.get(id);
+      return model && isAutoPickCandidate(model);
+    });
+    const debaters = pickOnePerProvider(trending, catalogMap, count, new Set());
+    if (debaters.length < count) continue;
+    const flagshipsFirst = [...trending].sort(
+      (a, b) => modelCostPerMillion(catalogMap.get(b)!) - modelCostPerMillion(catalogMap.get(a)!)
+    );
+    return { modelIds: debaters, judgeModelId: pickJudge(flagshipsFirst, catalogMap, debaters), source: "trending" };
+  }
+  return null;
+}
+
 /** Recommends a default Council lineup: `count` debaters plus one separate
- *  judge. The default is now cost-conscious: it prefers lower-cost reliable
- *  provider picks from the live catalog, keeps provider diversity, and only
- *  falls back to broader catalog/trending candidates if cheap coverage is too
- *  small. */
+ *  judge. Prefers this week's trending models (see trendingCouncil); when the
+ *  live ranking is unavailable it falls back to a cost-conscious pick from the
+ *  catalog that keeps provider diversity. */
 export function buildCouncilRecommendation(
   catalog: OpenRouterModel[],
   trendingIds: string[],
   count: number
 ): CouncilRecommendation {
+  const trending = trendingCouncil(catalog, trendingIds, count);
+  if (trending) return trending;
+
   const catalogMap = new Map(catalog.map((m) => [m.id, m]));
   const preferredJudge = bestBudgetModelForProvider(JUDGE_PROVIDER, catalog);
   const debaterProviderPicks = COST_CONSCIOUS_PROVIDER_ORDER.filter((p) => p !== JUDGE_PROVIDER).map((p) =>

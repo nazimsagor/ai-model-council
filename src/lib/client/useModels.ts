@@ -6,7 +6,11 @@ import type { OpenRouterModel } from "../types";
 interface ModelsResponse {
   models: OpenRouterModel[];
   providers: string[];
+  trendingIds?: string[];
 }
+
+// Stable reference so effects depending on trendingIds don't re-run while loading.
+const EMPTY_IDS: string[] = [];
 
 export function useModels() {
   const [data, setData] = useState<ModelsResponse | null>(null);
@@ -33,5 +37,11 @@ export function useModels() {
     };
   }, []);
 
-  return { models: data?.models ?? [], providers: data?.providers ?? [], loading, error };
+  return {
+    models: data?.models ?? [],
+    providers: data?.providers ?? [],
+    trendingIds: data?.trendingIds ?? EMPTY_IDS,
+    loading,
+    error,
+  };
 }

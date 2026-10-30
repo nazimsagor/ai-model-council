@@ -13,7 +13,7 @@ export interface ComboDef {
 }
 
 export const COMBOS: ComboDef[] = [
-  { id: "quality-leaders", label: "Quality leaders", description: "Best model from each major lab" },
+  { id: "quality-leaders", label: "Quality leaders", description: "Premium flagships people use most this week" },
   { id: "budget-smart", label: "Budget smart", description: "Strong answers at the lowest realistic cost" },
   { id: "fast-lane", label: "Fast lane", description: "Lighter, non-reasoning models that respond quickly" },
   { id: "coding-squad", label: "Coding squad", description: "Models with strong tool-use / coding support" },
@@ -70,12 +70,42 @@ function onePerProvider(sorted: OpenRouterModel[], count: number): string[] {
   return picked;
 }
 
+// Labs whose flagship leads a "Quality leaders" lineup, in this order; any
+// other lab with a trending paid flagship follows by its weekly usage.
+const PREMIUM_LAB_ORDER = ["anthropic", "openai", "google", "x-ai"];
+const PREMIUM_TRENDING_DEPTH = 80;
+
+/** Each lab's flagship — its priciest paid reasoning model among this week's
+ *  most-used — with the big premium labs first. Empty without trending data. */
+function premiumFlagships(usable: OpenRouterModel[], trendingIds: string[]): string[] {
+  const byId = new Map(usable.map((m) => [m.id, m]));
+  const flagship = new Map<string, OpenRouterModel>();
+  const labUsageRank = new Map<string, number>();
+  trendingIds.slice(0, PREMIUM_TRENDING_DEPTH).forEach((id, index) => {
+    const m = byId.get(id);
+    if (!m || !m.capabilities.reasoning || modelCostPerMillion(m) === 0) return;
+    if (!labUsageRank.has(m.provider)) labUsageRank.set(m.provider, index);
+    const current = flagship.get(m.provider);
+    if (!current || modelCostPerMillion(m) > modelCostPerMillion(current)) flagship.set(m.provider, m);
+  });
+  const rank = (provider: string) => {
+    const preferred = PREMIUM_LAB_ORDER.indexOf(provider);
+    return preferred === -1 ? PREMIUM_LAB_ORDER.length + labUsageRank.get(provider)! : preferred;
+  };
+  return [...flagship.values()].sort((a, b) => rank(a.provider) - rank(b.provider)).map((m) => m.id);
+}
+
 /** Resolves a named combo to concrete model ids from the live catalog —
- *  ranking always comes from real capability/price/context signals, never a
- *  hardcoded model name, so a combo's picks automatically follow whatever
- *  each lab currently ships. Falls back to "quality-leaders" ranking for an
- *  unrecognized id. */
-export function resolveCombo(comboId: string, catalog: OpenRouterModel[], count: number): string[] {
+ *  ranking always comes from real capability/price/context/usage signals,
+ *  never a hardcoded model name, so a combo's picks automatically follow
+ *  whatever each lab currently ships. Falls back to "quality-leaders" ranking
+ *  for an unrecognized id. */
+export function resolveCombo(
+  comboId: string,
+  catalog: OpenRouterModel[],
+  count: number,
+  trendingIds: string[] = []
+): string[] {
   const usable = catalog.filter(isAutoPickCandidate);
 
   switch (comboId) {
@@ -119,6 +149,8 @@ export function resolveCombo(comboId: string, catalog: OpenRouterModel[], count:
     }
     case "quality-leaders":
     default: {
+      const premium = premiumFlagships(usable, trendingIds);
+      if (premium.length >= count) return premium.slice(0, count);
       const sorted = [...usable].sort((a, b) => capabilityScore(b) - capabilityScore(a));
       return onePerProvider(sorted, count);
     }
