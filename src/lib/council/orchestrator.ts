@@ -17,6 +17,8 @@ export interface RunCouncilConfig {
   evaluate: boolean;
   webSearch?: boolean;
   modelTimeoutMs?: number;
+  // Earlier turns of a Chat conversation, oldest first, sent before `prompt`.
+  history?: ChatMessage[];
 }
 
 // Absolute ceiling per debater — a hard cap regardless of activity, so a
@@ -135,6 +137,7 @@ export async function runCouncil(
   const catalogMap = new Map(catalog.map((m) => [m.id, m]));
   const messages: ChatMessage[] = [];
   if (config.systemPrompt) messages.push({ role: "system", content: config.systemPrompt });
+  messages.push(...(config.history ?? []));
   messages.push({ role: "user", content: config.prompt });
 
   try {

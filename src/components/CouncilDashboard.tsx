@@ -59,6 +59,20 @@ function shortModelName(name: string): string {
   return name.replace(/^[^:]{1,30}:\s*/, "");
 }
 
+// One finished exchange in a Chat conversation, kept so follow-ups carry context.
+interface ChatTurn {
+  prompt: string;
+  answer: string;
+  modelId: string;
+}
+
+function toHistory(turns: ChatTurn[]): { role: "user" | "assistant"; content: string }[] {
+  return turns.flatMap((t) => [
+    { role: "user" as const, content: t.prompt },
+    { role: "assistant" as const, content: t.answer },
+  ]);
+}
+
 const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: string }> = {
   chat: {
     plain: "One model.",
@@ -147,6 +161,12 @@ export function CouncilDashboard() {
 
   const modelPicked = useRef(false);
 
+  // Earlier exchanges of the Chat conversation on screen (the current one
+  // lives in `state`); sent as history with each follow-up.
+  const [thread, setThread] = useState<ChatTurn[]>([]);
+  const [followUp, setFollowUp] = useState("");
+  const currentTurnRef = useRef<HTMLDivElement>(null);
+
   // A prompt handed off from /home: prefilled here, then sent once a model
   // lineup is ready — as if the user had pressed Enter on this page. Taken
   // from storage once per mount (Strict Mode re-runs effects) and held here.
@@ -172,6 +192,8 @@ export function CouncilDashboard() {
       setAutoReason(null);
       setJudgeModelId(null);
       setRecommendationSource(null);
+      setThread([]);
+      setFollowUp("");
       modelPicked.current = false;
     }
     window.addEventListener("council:new", reset);
@@ -191,6 +213,7 @@ export function CouncilDashboard() {
     setJudgeModelId(null);
     setRecommendationSource(null);
     setCombo(DEFAULT_COMPARE_COMBO);
+    setThread([]);
   }, [workflow]);
 
   // "Use free models" is a hard constraint — flipping it after Council/
@@ -368,8 +391,11 @@ export function CouncilDashboard() {
     setRecommendationSource(null);
   }
 
-  async function handleRun() {
-    if (!prompt.trim() || isRunning) return;
+  // `turn` continues a Chat conversation: its prompt is the follow-up and
+  // `history` the exchanges before it. Without it, runs the composer prompt fresh.
+  async function handleRun(turn?: { prompt: string; history: ChatTurn[] }) {
+    const text = turn?.prompt ?? prompt;
+    if (!text.trim() || isRunning) return;
     if (selectedIds.size === 0) return;
     // Browsing is fully open, but running a chat needs an account — the
     // API enforces this too, but redirecting straight to /login here is a
@@ -387,9 +413,10 @@ export function CouncilDashboard() {
       return;
     }
     setConfirmOverBudget(false);
+    setThread(turn?.history ?? []);
     await run(
       {
-        prompt,
+        prompt: text,
         customSystemPrompt: customSystemPrompt || undefined,
         promptMode,
         workflow,
@@ -403,10 +430,28 @@ export function CouncilDashboard() {
         maxTokens,
         maxBudget: effectiveBudget ?? undefined,
         webSearch: web,
+        history: turn ? toHistory(turn.history) : undefined,
       },
       apiKey
     );
   }
+
+  function sendFollowUp() {
+    const text = followUp.trim();
+    if (!text || !state || isRunning) return;
+    const modelId = state.order[0];
+    const answer = modelId ? (state.modelStates[modelId]?.content ?? "") : "";
+    // A failed turn has no answer to carry forward — the follow-up simply
+    // continues from the last exchange that did complete.
+    const history = answer ? [...thread, { prompt: state.prompt, answer, modelId }] : thread;
+    setFollowUp("");
+    handleRun({ prompt: text, history });
+  }
+
+  // Keep the newest exchange in view as a Chat conversation grows.
+  useEffect(() => {
+    if (thread.length > 0) currentTurnRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [thread.length, state?.startedAt]);
 
   // Send the /home handoff once its prompt is in place and a lineup has
   // settled (default model, recommended council, combo, or auto-select).
@@ -754,7 +799,7 @@ export function CouncilDashboard() {
             </button>
 
             <button
-              onClick={hasApiKey ? handleRun : openKeyModal}
+              onClick={hasApiKey ? () => handleRun() : openKeyModal}
               disabled={hasApiKey && (!prompt.trim() || isRunning || selectedIds.size === 0)}
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
             >
@@ -1050,8 +1095,24 @@ export function CouncilDashboard() {
 
       {state && (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl bg-accent px-4 py-2.5 text-[13px] leading-snug text-on-accent shadow-sm">
+          {workflow === "chat" &&
+            thread.map((turn, i) => (
+              <div key={i} className="space-y-4">
+                <div className="flex justify-end">
+                  <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-accent px-4 py-2.5 text-[13px] leading-snug text-on-accent shadow-sm">
+                    {turn.prompt}
+                  </div>
+                </div>
+                <SingleResponseView
+                  modelId={turn.modelId}
+                  state={{ modelId: turn.modelId, status: "complete", content: turn.answer }}
+                  models={models}
+                />
+              </div>
+            ))}
+
+          <div ref={currentTurnRef} className="flex scroll-mt-6 justify-end">
+            <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-accent px-4 py-2.5 text-[13px] leading-snug text-on-accent shadow-sm">
               {state.prompt}
             </div>
           </div>
@@ -1091,15 +1152,55 @@ export function CouncilDashboard() {
           )}
 
           {state.order.length === 1 ? (
-            <SingleResponseView
-              modelId={state.order[0]}
-              state={state.modelStates[state.order[0]]}
-              models={models}
-              onSecondOpinion={workflow === "chat" ? () => setWorkflow("compare") : undefined}
-              onCouncilReview={workflow === "chat" ? () => setWorkflow("council") : undefined}
-              onOrchestrate={workflow === "chat" ? () => autoSelect(1) : undefined}
-              onRetry={handleRun}
-            />
+            <>
+              <SingleResponseView
+                modelId={state.order[0]}
+                state={state.modelStates[state.order[0]]}
+                models={models}
+                onSecondOpinion={workflow === "chat" ? () => setWorkflow("compare") : undefined}
+                onCouncilReview={workflow === "chat" ? () => setWorkflow("council") : undefined}
+                onOrchestrate={workflow === "chat" ? () => autoSelect(1) : undefined}
+                onRetry={() => handleRun({ prompt: state.prompt, history: thread })}
+              />
+              {workflow === "chat" && !isRunning && (
+                <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-2 shadow-sm transition-colors focus-within:border-accent">
+                  <label htmlFor="chat-follow-up" className="sr-only">
+                    Ask a follow-up
+                  </label>
+                  <textarea
+                    id="chat-follow-up"
+                    value={followUp}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendFollowUp();
+                      }
+                    }}
+                    placeholder={`Reply to ${shortModelName(models.find((m) => m.id === state.order[0])?.name ?? "the model")}…`}
+                    rows={2}
+                    style={{ outline: "none" }}
+                    className="w-full resize-none rounded-xl bg-transparent px-3 py-2 text-[14px] placeholder:text-muted-2"
+                  />
+                  <div className="flex items-center justify-between gap-2 px-1 pb-0.5">
+                    <span className="text-[11px] text-muted-2">
+                      {thread.length > 0
+                        ? `${thread.length + 1} messages in this chat · Enter to send · Shift + Enter for a new line`
+                        : "Continue the conversation · Enter to send · Shift + Enter for a new line"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={sendFollowUp}
+                      disabled={!followUp.trim()}
+                      aria-label="Send follow-up"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-2"
+                    >
+                      <Icon path={ICON_PATHS.arrowUp} className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {sortedForDisplay.map((id, i) => {
@@ -1149,7 +1250,7 @@ export function CouncilDashboard() {
                     onClick={() => window.dispatchEvent(new Event("council:new"))}
                     className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
                   >
-                    New Council
+                    {workflow === "chat" ? "New chat" : workflow === "compare" ? "New compare" : "New Council"}
                   </button>
                 </div>
               )}

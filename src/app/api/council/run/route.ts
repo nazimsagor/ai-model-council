@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getTrendingModelIds, listModels } from "@/lib/openrouter";
+import { getTrendingModelIds, listModels, type ChatMessage } from "@/lib/openrouter";
 import { selectJudges } from "@/lib/council/evaluation";
 import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect";
 import { buildSystemPrompt } from "@/lib/council/prompts";
@@ -30,6 +30,24 @@ interface RunRequestBody {
   maxTokens?: number;
   maxBudget?: number;
   webSearch?: boolean;
+  // Chat only: earlier turns of the same conversation, oldest first.
+  history?: { role: string; content: string }[];
+}
+
+// Bounds on how much earlier conversation a follow-up may carry, so one
+// request can't balloon into an enormous (and expensive) context.
+const MAX_HISTORY_MESSAGES = 30;
+const MAX_HISTORY_MESSAGE_CHARS = 40_000;
+
+function sanitizeHistory(raw: RunRequestBody["history"]): ChatMessage[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (m): m is { role: "user" | "assistant"; content: string } =>
+        !!m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim() !== ""
+    )
+    .slice(-MAX_HISTORY_MESSAGES)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_HISTORY_MESSAGE_CHARS) }));
 }
 
 function sseFormat(event: SSEEvent): string {
@@ -189,6 +207,7 @@ export async function POST(req: NextRequest) {
             judgeModelIds,
             evaluate,
             webSearch: body.webSearch,
+            history: isSingleModelWorkflow ? sanitizeHistory(body.history) : [],
           },
           catalog,
           emit

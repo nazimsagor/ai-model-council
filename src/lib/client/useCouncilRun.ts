@@ -32,6 +32,8 @@ export interface RunCouncilRequest {
   maxTokens?: number;
   maxBudget?: number;
   webSearch?: boolean;
+  // Chat follow-ups: earlier turns of the conversation, oldest first.
+  history?: { role: "user" | "assistant"; content: string }[];
 }
 
 export function useCouncilRun() {
