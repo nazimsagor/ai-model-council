@@ -1287,31 +1287,40 @@ export function CouncilDashboard() {
 
           {state.phase === "done" && (
             <>
-              <CostSpeedSummary
-                order={state.order}
-                modelStates={state.modelStates}
-                totalCost={state.totalCost}
-                totalTimeMs={state.totalTimeMs}
-              />
+              {/* Council-wide cost/speed tiles mean little for a one-model chat. */}
+              {workflow !== "chat" && (
+                <CostSpeedSummary
+                  order={state.order}
+                  modelStates={state.modelStates}
+                  totalCost={state.totalCost}
+                  totalTimeMs={state.totalTimeMs}
+                />
+              )}
               {state.runId && (
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`/api/history/${state.runId}/export?format=markdown`}
-                    className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
-                  >
-                    Export Markdown
-                  </a>
-                  <a
-                    href={`/api/history/${state.runId}/export?format=json`}
-                    className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
-                  >
-                    Export JSON
-                  </a>
+                <div className={`flex flex-wrap gap-2 ${workflow === "chat" ? "mx-auto w-full max-w-3xl" : ""}`}>
+                  {/* A chat's exports would only cover its latest turn, so chat
+                      links to the full transcript in History instead. */}
+                  {workflow !== "chat" && (
+                    <>
+                      <a
+                        href={`/api/history/${state.runId}/export?format=markdown`}
+                        className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
+                      >
+                        Export Markdown
+                      </a>
+                      <a
+                        href={`/api/history/${state.runId}/export?format=json`}
+                        className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
+                      >
+                        Export JSON
+                      </a>
+                    </>
+                  )}
                   <Link
-                    href={`/history/${state.runId}`}
+                    href={`/history/${workflow === "chat" ? (chatRootId ?? state.runId) : state.runId}`}
                     className="rounded-md border border-border px-3 py-1.5 text-[12px] text-muted hover:text-foreground"
                   >
-                    View in History
+                    {workflow === "chat" ? "View full chat" : "View in History"}
                   </Link>
                   <button
                     onClick={() => window.dispatchEvent(new Event("council:new"))}

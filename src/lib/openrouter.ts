@@ -172,6 +172,51 @@ export interface CompletionResult {
   completionTokens: number;
 }
 
+// A busy (rate-limited) model often frees up within a second or two, so one
+// quiet retry saves the user from pressing Retry themselves.
+const BUSY_RETRY_DELAY_MS = 2000;
+
+async function postCompletion(apiKey: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<Response> {
+  const send = () =>
+    fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      method: "POST",
+      headers: headers(apiKey),
+      signal,
+      body: JSON.stringify(body),
+    });
+  const res = await send();
+  if (res.status !== 429) return res;
+  await res.body?.cancel().catch(() => {});
+  await new Promise((resolve) => setTimeout(resolve, BUSY_RETRY_DELAY_MS));
+  return send();
+}
+
+/** Turns an OpenRouter failure into a sentence a person can act on, instead
+ *  of the raw JSON body. */
+function openRouterError(status: number, body: string, modelId: string): Error {
+  let detail = "";
+  try {
+    detail = JSON.parse(body)?.error?.message ?? "";
+  } catch {
+    detail = body.slice(0, 200);
+  }
+  const isFree = modelId.endsWith(":free");
+  switch (status) {
+    case 401:
+      return new Error("OpenRouter rejected your API key. Check that it's correct and still active.");
+    case 402:
+      return new Error("Your OpenRouter account is out of credits. Add credits on openrouter.ai, or pick a free model.");
+    case 429:
+      return new Error(
+        isFree
+          ? "This free model is busy right now — free models are shared by everyone and often hit their limit. Press Retry in a moment, or pick another model."
+          : "This model is busy right now (its provider is rate-limiting requests). Press Retry in a moment, or pick another model."
+      );
+    default:
+      return new Error(`The model couldn't answer (OpenRouter error ${status}${detail ? `: ${detail}` : ""}).`);
+  }
+}
+
 export async function chatCompletion(
   apiKey: string,
   modelId: string,
@@ -179,21 +224,20 @@ export async function chatCompletion(
   opts: { temperature?: number; maxTokens?: number; signal?: AbortSignal; webSearch?: boolean } = {}
 ): Promise<CompletionResult> {
   if (!apiKey) throw new MissingApiKeyError();
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: "POST",
-    headers: headers(apiKey),
-    signal: opts.signal,
-    body: JSON.stringify({
+  const res = await postCompletion(
+    apiKey,
+    {
       model: modelId,
       messages,
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 1024,
       ...(opts.webSearch ? { plugins: [{ id: "web" }] } : {}),
-    }),
-  });
+    },
+    opts.signal
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`OpenRouter error ${res.status}: ${body.slice(0, 300)}`);
+    throw openRouterError(res.status, body, modelId);
   }
   const json = await res.json();
   return {
@@ -218,23 +262,22 @@ export async function streamChatCompletion(
   }
 ): Promise<CompletionResult> {
   if (!apiKey) throw new MissingApiKeyError();
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: "POST",
-    headers: headers(apiKey),
-    signal: opts.signal,
-    body: JSON.stringify({
+  const res = await postCompletion(
+    apiKey,
+    {
       model: modelId,
       messages,
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 1024,
       stream: true,
       ...(opts.webSearch ? { plugins: [{ id: "web" }] } : {}),
-    }),
-  });
+    },
+    opts.signal
+  );
 
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
-    throw new Error(`OpenRouter error ${res.status}: ${body.slice(0, 300)}`);
+    throw openRouterError(res.status, body, modelId);
   }
 
   const reader = res.body.getReader();
