@@ -209,6 +209,9 @@ export async function listRuns(owner: RunOwner, limit = 50): Promise<RunListItem
     .from("runs")
     .select("id, prompt, created_at, status, workflow, selected_model_ids, total_cost, summary_json")
     .eq(owner.column, owner.id)
+    // Chat follow-ups live under their conversation's first run, which
+    // stands for the whole chat in Recent Work and History.
+    .is("parent_run_id", null)
     .order("created_at", { ascending: false })
     .limit(limit)
     .returns<
@@ -232,7 +235,44 @@ export async function listRuns(owner: RunOwner, limit = 50): Promise<RunListItem
   }));
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Deletes a run along with any chat follow-ups stored under it. */
 export async function deleteRun(runId: string, owner: RunOwner) {
-  const { error } = await supabase.from("runs").delete().eq("id", runId).eq(owner.column, owner.id);
+  // runId is interpolated into the or() filter, so only accept a real uuid.
+  if (!UUID_RE.test(runId)) return;
+  const { error } = await supabase
+    .from("runs")
+    .delete()
+    .eq(owner.column, owner.id)
+    .or(`id.eq.${runId},parent_run_id.eq.${runId}`);
   if (error) throw new Error(`Failed to delete run: ${error.message}`);
+}
+
+/** True when `runId` is this owner's own conversation-starting run — the
+ *  only kind a chat follow-up may attach to. */
+export async function isOwnRootRun(runId: string, owner: RunOwner): Promise<boolean> {
+  if (!UUID_RE.test(runId)) return false;
+  const { data } = await supabase
+    .from("runs")
+    .select("id")
+    .eq("id", runId)
+    .eq(owner.column, owner.id)
+    .is("parent_run_id", null)
+    .maybeSingle();
+  return !!data;
+}
+
+/** A chat's follow-up runs, oldest first, fully loaded. */
+export async function listFollowUps(rootRunId: string, owner: RunOwner): Promise<CouncilRun[]> {
+  const { data, error } = await supabase
+    .from("runs")
+    .select("id")
+    .eq("parent_run_id", rootRunId)
+    .eq(owner.column, owner.id)
+    .order("created_at", { ascending: true })
+    .returns<{ id: string }[]>();
+  if (error) throw new Error(`Failed to load follow-ups: ${error.message}`);
+  const runs = await Promise.all((data ?? []).map((row) => getRun(row.id, owner)));
+  return runs.filter((r): r is CouncilRun => r !== null);
 }

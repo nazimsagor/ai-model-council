@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteRun, getRun } from "@/lib/repository";
+import { deleteRun, getRun, listFollowUps } from "@/lib/repository";
 import { getRunOwner } from "@/lib/runOwner";
 
 export const runtime = "nodejs";
@@ -10,7 +10,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!owner) return NextResponse.json({ error: "Sign in to view this run." }, { status: 401 });
   const run = await getRun(id, owner);
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  return NextResponse.json({ run });
+  const followUps = run.workflow === "chat" ? await listFollowUps(id, owner) : [];
+  return NextResponse.json({ run, followUps });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

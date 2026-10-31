@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getRun } from "@/lib/repository";
+import { getRun, listFollowUps } from "@/lib/repository";
 import { getRunOwner } from "@/lib/runOwner";
 import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 import { RunReport } from "@/components/RunReport";
@@ -13,5 +13,6 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
   }
   const run = await getRun(id, owner);
   if (!run) notFound();
-  return <RunReport run={run} />;
+  const followUps = run.workflow === "chat" ? await listFollowUps(id, owner) : [];
+  return <RunReport run={run} followUps={followUps} />;
 }

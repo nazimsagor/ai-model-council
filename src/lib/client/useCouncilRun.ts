@@ -7,11 +7,13 @@ import { applyEvent, initialRunState, type RunViewState } from "./runState";
 type Action =
   | { type: "reset"; prompt: string; modelIds: string[] }
   | { type: "clear" }
+  | { type: "restore"; state: RunViewState }
   | { type: "event"; event: SSEEvent };
 
 function reducer(state: RunViewState | null, action: Action): RunViewState | null {
   if (action.type === "reset") return initialRunState(action.prompt, action.modelIds);
   if (action.type === "clear") return null;
+  if (action.type === "restore") return action.state;
   if (!state) return state;
   return applyEvent(state, action.event);
 }
@@ -32,8 +34,10 @@ export interface RunCouncilRequest {
   maxTokens?: number;
   maxBudget?: number;
   webSearch?: boolean;
-  // Chat follow-ups: earlier turns of the conversation, oldest first.
+  // Chat follow-ups: earlier turns of the conversation, oldest first, and
+  // the id of its first run so the follow-up is saved under that chat.
   history?: { role: "user" | "assistant"; content: string }[];
+  parentRunId?: string;
 }
 
 export function useCouncilRun() {
@@ -99,5 +103,11 @@ export function useCouncilRun() {
     dispatch({ type: "clear" });
   }, []);
 
-  return { state, run, cancel, clear };
+  // Puts a finished run back on screen (e.g. reopening a saved chat).
+  const restore = useCallback((state: RunViewState) => {
+    abortRef.current?.abort();
+    dispatch({ type: "restore", state });
+  }, []);
+
+  return { state, run, cancel, clear, restore };
 }

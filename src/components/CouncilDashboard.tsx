@@ -20,7 +20,7 @@ import { COMBOS, resolveCombo } from "@/lib/council/combos";
 import { useCurrentUser } from "@/lib/client/useCurrentUser";
 import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 import { savePendingPrompt, takePendingPrompt, type PendingPrompt } from "@/lib/client/pendingPrompt";
-import type { PromptMode, Workflow } from "@/lib/types";
+import type { CouncilRun, PromptMode, Workflow } from "@/lib/types";
 
 const WORKFLOWS: { id: Workflow; label: string; desc: string; icon: keyof typeof ICON_PATHS }[] = [
   { id: "chat", label: "Chat", desc: "One model, one focused answer", icon: "chat" },
@@ -93,7 +93,7 @@ const WORKFLOW_COPY: Record<Workflow, { plain: string; accent: string; sub: stri
 
 export function CouncilDashboard() {
   const { models, trendingIds, error: modelsError } = useModels();
-  const { state, run, clear } = useCouncilRun();
+  const { state, run, clear, restore } = useCouncilRun();
   const { freeModelsOnly, apiKey, hasApiKey, openKeyModal, defaultModelId, setDefaultModelId } = useAppSettings();
   const { user, loading: userLoading } = useCurrentUser();
   const router = useRouter();
@@ -164,6 +164,9 @@ export function CouncilDashboard() {
   // Earlier exchanges of the Chat conversation on screen (the current one
   // lives in `state`); sent as history with each follow-up.
   const [thread, setThread] = useState<ChatTurn[]>([]);
+  // The conversation's first run; follow-ups are saved under it so the whole
+  // chat is one entry in Recent Work and History.
+  const [chatRootId, setChatRootId] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState("");
   const currentTurnRef = useRef<HTMLDivElement>(null);
 
@@ -193,12 +196,14 @@ export function CouncilDashboard() {
       setJudgeModelId(null);
       setRecommendationSource(null);
       setThread([]);
+      setChatRootId(null);
       setFollowUp("");
       modelPicked.current = false;
+      if (window.location.search.includes("continue=")) router.replace(window.location.pathname, { scroll: false });
     }
     window.addEventListener("council:new", reset);
     return () => window.removeEventListener("council:new", reset);
-  }, [clear]);
+  }, [clear, router]);
 
   // Each workflow tab has its own selection semantics (single model for
   // Chat, a lineup for Compare/Council) — start fresh when switching so a
@@ -214,7 +219,58 @@ export function CouncilDashboard() {
     setRecommendationSource(null);
     setCombo(DEFAULT_COMPARE_COMBO);
     setThread([]);
+    setChatRootId(null);
   }, [workflow]);
+
+  // /chat?continue=<id> reopens a saved chat: its earlier exchanges become the
+  // thread, the last one is put back on screen, and replies continue it.
+  const continueId = workflow === "chat" ? searchParams.get("continue") : null;
+  useEffect(() => {
+    if (!continueId) return;
+    let cancelled = false;
+    fetch(`/api/history/${continueId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { run?: CouncilRun; followUps?: CouncilRun[] } | null) => {
+        if (cancelled || !json?.run) return;
+        const turns = [json.run, ...(json.followUps ?? [])].filter((t) => t.results[0]);
+        const last = turns.at(-1);
+        if (!last) return;
+        const lastResult = last.results[0];
+        setThread(
+          turns
+            .slice(0, -1)
+            .filter((t) => t.results[0].content)
+            .map((t) => ({ prompt: t.prompt, answer: t.results[0].content, modelId: t.results[0].modelId }))
+        );
+        setChatRootId(json.run.id);
+        modelPicked.current = true;
+        setSelectedIds(new Set([lastResult.modelId]));
+        restore({
+          runId: last.id,
+          prompt: last.prompt,
+          phase: "done",
+          modelStates: {
+            [lastResult.modelId]: {
+              modelId: lastResult.modelId,
+              status: lastResult.status,
+              content: lastResult.content,
+              error: lastResult.error,
+              latencyMs: lastResult.latencyMs,
+              cost: lastResult.cost,
+            },
+          },
+          order: [lastResult.modelId],
+          evaluations: [],
+          totalCost: last.totalCost,
+          totalTimeMs: last.totalTimeMs,
+          notices: [],
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [continueId, restore]);
 
   // "Use free models" is a hard constraint — flipping it after Council/
   // Compare already auto-populated a lineup must re-roll that lineup, not
@@ -393,7 +449,7 @@ export function CouncilDashboard() {
 
   // `turn` continues a Chat conversation: its prompt is the follow-up and
   // `history` the exchanges before it. Without it, runs the composer prompt fresh.
-  async function handleRun(turn?: { prompt: string; history: ChatTurn[] }) {
+  async function handleRun(turn?: { prompt: string; history: ChatTurn[]; parentRunId?: string }) {
     const text = turn?.prompt ?? prompt;
     if (!text.trim() || isRunning) return;
     if (selectedIds.size === 0) return;
@@ -431,6 +487,7 @@ export function CouncilDashboard() {
         maxBudget: effectiveBudget ?? undefined,
         webSearch: web,
         history: turn ? toHistory(turn.history) : undefined,
+        parentRunId: turn?.parentRunId,
       },
       apiKey
     );
@@ -444,8 +501,10 @@ export function CouncilDashboard() {
     // A failed turn has no answer to carry forward — the follow-up simply
     // continues from the last exchange that did complete.
     const history = answer ? [...thread, { prompt: state.prompt, answer, modelId }] : thread;
+    const rootId = chatRootId ?? state.runId ?? null;
+    setChatRootId(rootId);
     setFollowUp("");
-    handleRun({ prompt: text, history });
+    handleRun({ prompt: text, history, parentRunId: rootId ?? undefined });
   }
 
   // Keep the newest exchange in view as a Chat conversation grows.
@@ -1127,11 +1186,13 @@ export function CouncilDashboard() {
             />
           )}
 
-          <StatusBoard
-            order={state.order}
-            modelStates={state.modelStates}
-            label={workflow === "council" ? "Bohumot AI" : activeWorkflowMeta.label}
-          />
+          {workflow !== "chat" && (
+            <StatusBoard
+              order={state.order}
+              modelStates={state.modelStates}
+              label={workflow === "council" ? "Bohumot AI" : activeWorkflowMeta.label}
+            />
+          )}
 
           {state.notices.map((n, i) => (
             <div key={i} className="rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-[12px] text-warning">
@@ -1160,7 +1221,13 @@ export function CouncilDashboard() {
                 onSecondOpinion={workflow === "chat" ? () => setWorkflow("compare") : undefined}
                 onCouncilReview={workflow === "chat" ? () => setWorkflow("council") : undefined}
                 onOrchestrate={workflow === "chat" ? () => autoSelect(1) : undefined}
-                onRetry={() => handleRun({ prompt: state.prompt, history: thread })}
+                onRetry={() =>
+                  handleRun({
+                    prompt: state.prompt,
+                    history: thread,
+                    parentRunId: thread.length > 0 ? (chatRootId ?? undefined) : undefined,
+                  })
+                }
               />
               {workflow === "chat" && !isRunning && (
                 <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-2 shadow-sm transition-colors focus-within:border-accent">

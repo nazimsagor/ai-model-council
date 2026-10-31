@@ -157,7 +157,7 @@ export function Sidebar() {
           {recent?.map((r) => (
             <Link
               key={r.id}
-              href={`/history/${r.id}`}
+              href={r.workflow === "chat" ? `/chat?continue=${r.id}` : `/history/${r.id}`}
               className="flex items-center gap-1.5 truncate rounded-md px-2.5 py-1.5 text-[12px] text-muted hover:bg-background hover:text-foreground"
               title={r.status === "failed" ? `${r.prompt} (failed)` : r.prompt}
             >

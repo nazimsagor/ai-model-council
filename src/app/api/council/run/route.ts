@@ -4,7 +4,7 @@ import { selectJudges } from "@/lib/council/evaluation";
 import { autoSelectModels, COUNCIL_MODE_COUNTS } from "@/lib/council/autoSelect";
 import { buildSystemPrompt } from "@/lib/council/prompts";
 import { runCouncil } from "@/lib/council/orchestrator";
-import { createRun, failRun } from "@/lib/repository";
+import { createRun, failRun, isOwnRootRun } from "@/lib/repository";
 import { getCurrentUser } from "@/lib/subscription";
 import { SIGN_IN_REQUIRED } from "@/lib/authMode";
 import { getRunOwner, newVisitorOwner } from "@/lib/runOwner";
@@ -30,8 +30,10 @@ interface RunRequestBody {
   maxTokens?: number;
   maxBudget?: number;
   webSearch?: boolean;
-  // Chat only: earlier turns of the same conversation, oldest first.
+  // Chat only: earlier turns of the same conversation, oldest first, and the
+  // id of that conversation's first run so the follow-up is filed under it.
   history?: { role: string; content: string }[];
+  parentRunId?: string;
 }
 
 // Bounds on how much earlier conversation a follow-up may carry, so one
@@ -144,8 +146,15 @@ export async function POST(req: NextRequest) {
   // rejected attempt still shows up in Recent Work/History as a failed run
   // instead of vanishing silently (the client already displayed it as
   // "Failed" locally; only the DB record was missing).
+  // A chat follow-up is filed under its conversation's first run, but only
+  // when that run really is the caller's own conversation start.
+  const parentRunId =
+    isSingleModelWorkflow && body.parentRunId && (await isOwnRootRun(body.parentRunId, owner))
+      ? body.parentRunId
+      : undefined;
   const runId = await createRun({
     owner,
+    parentRunId,
     prompt: body.prompt,
     systemPrompt,
     workflow,
